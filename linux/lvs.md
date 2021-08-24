@@ -274,6 +274,16 @@ ipvsadm -D -t|-u|-f service-address
 | -f                 | firewall MARK，一个数字   |
 | -s scheduler       | 指定集群调度算法，默认wlc |
 
+范例：
+
+```bash
+ipvsadm -A -t 192.168.0.100:80 -s wrr
+ipvsadm -A -u 192.168.0.100:80 -s wlc
+ipvsadm -D -t 192.168.0.100:80
+```
+
+
+
 **管理集群上的RS：增、删、改**
 
 ```bash
@@ -290,4 +300,29 @@ ipvsadm -d -t|-u|-f service-address -r server-address
 | -g             | gateway，DR模式，默认                  |
 | -i             | ipip，tun模式                          |
 | -m             | masquerade，nat模式                    |
+
+范例：
+
+```bash
+ipvsadm -a -t 192.168.0.100:80 -r 192.168.0.8:8000 -m -w 3
+```
+
+**清空定义的所有内容**
+
+```bash
+ipvsadm -C
+```
+
+**清空计数器**
+
+```bash
+ipvsadm -Z [-t|-u|-f service-address]
+```
+
+**查看**
+
+```bash
+ipvsadm -Ln # 查看lvs规则
+ipvsadm -Lnc # 查看lvs连接
+```
 
