@@ -2,7 +2,7 @@
 
 在京东云主机中部署strongswan，与混合云连接-VPN实现ipsec**vpn**互通。
 
-![img](images/190113brtplrl7oemdum9r.png)
+![img](./images/190113brtplrl7oemdum9r.png)
 
 ## 一、控制台配置
 
@@ -10,45 +10,45 @@
 
 2. 创建VPC接口
 
-   ![img](images/173044cedpz1rzg7pdp817.png)
+   ![img](./images/173044cedpz1rzg7pdp817.png)
 
    
 
 3. 创建VPN-客户网关
 
-   ![img](images/173548d36sgywqqwsl3alk.png)
+   ![img](./images/173548d36sgywqqwsl3alk.png)
 
 4. 创建VPN-VPN连接
 
-   ![img](images/173859rxiapq725fp5paka.png)
+   ![img](./images/173859rxiapq725fp5paka.png)
 
 5. 点击VPN连接中，ID/名称的tab项
 
-   ![img](images/174241fq7pdcoeozzk428u.png)
+   ![img](./images/174241fq7pdcoeozzk428u.png)
 
 6. 添加隧道
 
-   ![img](images/174331xtpdmtl733b73bvt.png)
+   ![img](./images/174331xtpdmtl733b73bvt.png)
 
 7. 隧道1 ipsec协商参数配置，后续客户端配置需要与此一致
 
-   ![img](images/175159i5962575kk02kuh7.png)
+   ![img](./images/175159i5962575kk02kuh7.png)
 
 8. 隧道2 ipsec协商参数，点击确定保存
 
-   ![img](images/175639epbrognbygo0ci7b.png)
+   ![img](./images/175639epbrognbygo0ci7b.png)
 
 ## 配置路由
 
 1. 边界网关—路由表，添加去往客户端的静态路由，如果客户端运行的是BGP，则此处可以自动学习到路由
 
-   ![img](images/181001dzmyaamqu2jom09p.png)
+   ![img](./images/181001dzmyaamqu2jom09p.png)
 
    
 
 2. 配置广州VPC子网去往上海的路由，下一跳设置为边界网关
 
-   ![img](images/185417c6qqut1tlwttmiui.png)
+   ![img](./images/185417c6qqut1tlwttmiui.png)
 
 ## 客户端云主机配置（华东上海CentOS7.4云主机)
 
@@ -152,5 +152,5 @@
 
 使用192.168.0.8 ping 10.1.0.11
 
-![img](images/190252p33435a3zaz33g39.png)
+![img](./images/190252p33435a3zaz33g39.png)
 
