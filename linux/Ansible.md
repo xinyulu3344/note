@@ -78,8 +78,10 @@ source ./hacking/env-setup
 
 ### pip安装
 
+使用Python的虚拟环境来安装
+
 ```bash
-sudo pip3 install ansible
+sudo pip install ansible
 ```
 
 
@@ -229,25 +231,121 @@ db-[99:101]-node.example.com
 ansible <host-pattern> [-m module_name] [-a args]
 ```
 
-| 格式   | 解释                      | 范例                                                   |
-| ------ | ------------------------- | ------------------------------------------------------ |
-| all    | 表示所有inventory中的主机 | ansible all -m ping                                    |
-| 通配符 |                           | ansible "*" -m ping<br />ansible  192.168.1.\* -m ping |
-| 逻辑或 |                           |                                                        |
-| 逻辑与 |                           |                                                        |
+**选项说明**
+
+| 选项                               | 说明                             |
+| ---------------------------------- | -------------------------------- |
+| --version                          | 显示版本                         |
+| -m MOUDLE                          | 指定模块，默认是command          |
+| -v                                 | 执行详细过程，-vv -vvv更详细     |
+| --list-hosts                       | 显示匹配的主机列表，可简写--list |
+| -k, --ask-pass                     | 提示输入ssh连接密码，默认key验证 |
+| -C, --check                        | 检查，并不执行                   |
+| -T, --timeout=TIMEOUT              | 连接超时时间，默认10s            |
+| -u REMOTE_USER, --user REMOTE_USER | 执行远程执行的用户               |
+| -b, --become                       | 代替旧版的sudo切换               |
+| --become-user RECOME_USER          | 指定sudo的run as用户，默认为root |
+| -K, --ask-become-pass              | 提示输入sudo时的口令             |
+
+
+
+| host-pattern | 解释                                       | 范例                                                         |
+| ------------ | ------------------------------------------ | ------------------------------------------------------------ |
+| all          | 表示所有inventory中的主机                  | ansible all -m ping                                          |
+| 通配符*      |                                            | ansible "*" -m ping<br />ansible  192.168.1.\* -m ping       |
+| 逻辑或       | :两边只要有一个有，就匹配                  | ansible "websrvs:appsrvs" -m ping<br />ansible "192.168.1.10:192.168.1.20" -m ping |
+| 逻辑与       | :&两边都有，才匹配中                       | ansible "websrvs:&dbsrvs" -m ping                            |
+| 逻辑非       | :!左边有，右边没有，则匹配，注意要用单引号 | ansible 'websrvs:!dbsrvs' -m ping                            |
+| 综合逻辑     |                                            | ansible 'websrvs:dbsrvs:&appsrvs:!ftpsrvs' -m ping           |
+| 正则表达式   |                                            | ansible "websrvs:&dbsrvs" -m ping<br />ansible "~(web\|db).*\\.magedu\\.com" -m ping |
+
+**ansible命令执行过程**
+
+1. 加载自己的配置文件，默认是`/etc/ansible/ansible.cfg`
+2. 加载自己对应的模块文件，如：command
+3. 通过ansible模块或命令生成对应的临时py文件，并将该文件传输至远程服务器的对应执行用户`$HOME/.ansible/tmp/ansible-tmp-数字/XXX.PY`文件
+4. 给文件+x执行
+5. 执行并返回结果
+6. 删除临时py文件，退出
 
 **示例**
 
+```bash
+# 以xinyulu用户执行ping存活探测
+ansible all -m ping -u xinyulu -k
+# 以xinyulu sudo到root执行ping存活探测
+ansible all -m ping -u xinyulu -k -b
+# 以xinyulu sudo至test用户执行ping存活探测
+ansible all -m ping -u xinyulu -k -b --become-user test
+# 以wang sudo至root用户执行ls
+ansible all -m command -u xinyulu -a 'ls /root' -b --become-user root -k -K
 ```
-$ ansible all -m ping -k
-SSH password: 
-192.168.1.171 | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python"
-    },
-    "changed": false,
-    "ping": "pong"
-}
 
+### ansible-galaxy
+
+此工具会连接https://galaxy.ansible.com下载相应的roles
+
+**示例**
+
+```bash
+# 列出所有已经安装的galaxy
+ansible-galaxy list
+# 安装galaxy
+ansible-galaxy install geerlingguy.redis
+# 删除galaxy
+ansible-galaxy remove geerlingguy.redis
 ```
+
+### ansible-pull
+
+该命令会推送ansible的命令至远程，效率无限提升，对运维要求较高
+
+### ansible-playbook
+
+此工具用于执行编写好的playbook任务
+
+**示例**
+
+```yaml
+- hosts: websrvs
+  remote_user: root
+  tasks:
+    - name: hello world
+      command: /usr/bin/wall hello world
+```
+
+### ansible-vault
+
+此工具可以用于加解密yml文件，避免明文存放
+
+**格式**
+
+```bash
+ansible-vault {create,decrypt,edit,view,encrypt,encrypt_string,rekey} xxx.yml
+```
+
+**示例**
+
+```bash
+ansible-vault encrypt hello.yml   # 加密
+ansible-vault decrypt hello.yml   # 解密
+ansible-vault view hello.yml      # 查看加密文件
+ansible-vault edit hello.yml      # 编辑加密文件
+ansible-vault rekey hello.yml     # 修改口令
+ansible-vault create new.yml      # 创建新文件
+```
+
+### ansible-console
+
+## ansible常用模块
+
+常用模块帮助文档：https://docs.ansible.com/ansible/latest/collections/index_module.html
+
+### command模块
+
+官方文档：https://docs.ansible.com/ansible/latest/collections/ansible/builtin/command_module.html#ansible-collections-ansible-builtin-command-module
+
+功能：在远程主机上执行命令，此为默认模块，可忽略-m选项
+
+注意：该模块不支持变量、重定向、管道符等，这些操作需要用shell模块执行
 
