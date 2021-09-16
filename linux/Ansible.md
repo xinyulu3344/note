@@ -349,3 +349,69 @@ ansible-vault create new.yml      # 创建新文件
 
 注意：该模块不支持变量、重定向、管道符等，这些操作需要用shell模块执行
 
+**示例**
+
+```bash
+ansible all -m 'command' -a 'chdir=/etc/ssh ls' -k
+```
+
+**常用参数**
+
+| 参数    | 解释                                   |
+| ------- | -------------------------------------- |
+| chdir   | 运行命令前切换目录                     |
+| creates | 当指定的文件存在时，就不执行对应命令   |
+| removes | 当指定的文件不存在时，就不执行对应命令 |
+
+
+
+### Shell模块
+
+**示例**
+
+```bash
+ansible all -m 'shell' -a 'echo password | passwd --stdin root'
+```
+
+**常用参数**
+
+| 参数    | 解释                                   |
+| ------- | -------------------------------------- |
+| chdir   | 运行命令前切换目录                     |
+| creates | 当指定的文件存在时，就不执行对应命令   |
+| removes | 当指定的文件不存在时，就不执行对应命令 |
+
+
+
+### script模块
+
+功能：在远程机器上执行ansible机器上的脚本
+
+**示例**
+
+```bash
+ansible all -m script -a '/data/test.sh'
+```
+
+### copy模块
+
+功能：从ansible服务器主控端复制文件到远程主机
+
+```bash
+# 如目标存在，默认会覆盖，此处指定先备份
+ansible srv -m copy -a "src=/root/test1.sh dest=/tmp/test2.sh owner=root mode=600 backup=yes"
+
+# 指定内容，直接生成目标文件
+ansible srv -m copy -a "content='test content\n' dest=/tmp/test.txt"
+
+# 复制/etc下文件，不包括/etc目录自身
+ansible srv -m copy -a "src=/etc/ dest=/backup"
+```
+
+### fetch模块
+
+功能：拉取远程机器的文件到ansible机器，会在ansible上创建对应IP的目录
+
+### file模块
+
+功能：设置文件属性
