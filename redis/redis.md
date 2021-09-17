@@ -105,6 +105,16 @@ maxmemory-policy noeviction
 
 ```
 
+## redis-cli
+
+**批量插入数据**
+
+```bash
+cat correct6.txt |redis-cli -a 'Lxy320826!!' --pipe
+```
+
+
+
 ## 主从复制
 
 ### 主从复制的作用
