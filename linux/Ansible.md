@@ -277,7 +277,7 @@ ansible all -m ping -u xinyulu -k
 ansible all -m ping -u xinyulu -k -b
 # 以xinyulu sudo至test用户执行ping存活探测
 ansible all -m ping -u xinyulu -k -b --become-user test
-# 以wang sudo至root用户执行ls
+# 以xinyulu sudo至root用户执行ls
 ansible all -m command -u xinyulu -a 'ls /root' -b --become-user root -k -K
 ```
 
@@ -385,7 +385,7 @@ ansible all -m 'shell' -a 'echo password | passwd --stdin root'
 
 ### script模块
 
-功能：在远程机器上执行ansible机器上的脚本
+功能：在远程机器上执行ansible机器上的脚本。将ansible机器上的脚本推送到远程执行，执行完成后会删除
 
 **示例**
 
@@ -406,12 +406,210 @@ ansible srv -m copy -a "content='test content\n' dest=/tmp/test.txt"
 
 # 复制/etc下文件，不包括/etc目录自身
 ansible srv -m copy -a "src=/etc/ dest=/backup"
+
+# 将/etc整个复制到/backup目录下。
+ansible srv -m copy -a "src=/etc dest=/backup"
 ```
 
 ### fetch模块
 
-功能：拉取远程机器的文件到ansible机器，会在ansible上创建对应IP的目录
+**功能：**拉取远程机器的文件到ansible机器，会在ansible上创建对应IP的目录，该模块不支持src是目录
+
+```bash
+ansible all -m fetch -a "src=/etc/redhat-release dest=./"
+192.168.1.171 | CHANGED => {
+    "changed": true,
+    "checksum": "0b2b27eb190f790ec5ff65897b3a1ef844f254c5",
+    "dest": "/home/xinyulu/192.168.1.171/etc/redhat-release",
+    "md5sum": "1bbbbf90102ed1317186597c4660e84a",
+    "remote_checksum": "0b2b27eb190f790ec5ff65897b3a1ef844f254c5",
+    "remote_md5sum": null
+}
+
+```
+
+
 
 ### file模块
 
-功能：设置文件属性
+**功能：**设置文件属性
+
+**范例**
+
+ ```bash
+ # 创建空文件
+ ansible all -m file -a "path=/tmp/test.txt state=touch"
+ ansible all -m file -a "path=/tmp/test.txt state=absent"
+ ansible all -m file -a "path=/tmp/test.sh owner=xinyulu mode=755"
+ 
+ # 创建目录
+ ansible all -m file -a "path=/tmp/mysql state=directory owner=mysql group=mysql"
+ 
+ # 创建软链接
+ ansible all -m file -a "src=/tmp/testfile dest=/tmp/testfile-link state=link"
+ ```
+
+### unarchive模块
+
+**功能：**解包解压缩
+
+1. 将主控主机上的压缩包传到远程主机后解压缩至特定目录，设置copy=yes
+2. 将远程主机上的某个压缩包解压到指定路径下，设置copy=no
+
+**常用参数**
+
+| 参数       | 解释                                                         |
+| ---------- | ------------------------------------------------------------ |
+| copy       | 默认是yes，会将主控机器上的压缩包复制到远程主机上，如果设置为no，会在远程主机上寻找src源文件 |
+| remote_src | 和copy互斥。yes表示文件在被控端，不在主控端。no表示文件在主控端 |
+| src        | 源文件的路径                                                 |
+| dest       | 解包解压缩的目标路径                                         |
+| mode       | 设置解包解压缩后的文件权限                                   |
+
+**示例**
+
+```bash
+ansible all -m unarchive -a "src=./etc.tar.gz dest=/tmp/ owner=xinyulu"
+```
+
+### Archive模块
+
+**功能：**打包
+
+**示例**
+
+```bash
+ansible all -m archive -a "path=/var/log/ dest=/tmp/log.tar.gz format=gz "
+```
+
+### hostname模块
+
+**功能：**改主机名
+
+**示例**
+
+```bash
+ansible websrvs -m hostname -a "name=CentOS74"
+```
+
+### Cron模块
+
+**功能：**计划任务
+
+支持时间：minute，hour，day，month，weekday
+
+**示例**
+
+```bash
+# 创建任务
+ansible all -m cron -a "minute=30 hour=2 weekday=1-5 name='backup mysql' job=mysql_backup.sh"
+
+# 禁用计划任务
+ansible all -m cron -a "minute=*/5 job='/usr/sbin/ntpdate 172.20.0.1 &>/dev/null' name=synctime disabled=yes"
+
+# 启用计划任务
+ansible all -m cron -a "minute=*/5 job='/usr/sbin/ntpdate 172.20.0.1 &>/dev/null' name=synctime disabled=no"
+
+# 删除计划任务
+ansible all -m cron -a "name=synctime state=absent"
+```
+
+### yum模块
+
+**功能：**管理软件包，只支持RHEL、CentOS、Fedora，不支持Ubuntu
+
+**示例**
+
+```bash
+# 安装
+ansible all -m yum -a "name=httpd state=present"
+
+# 卸载
+ansible all -m yum -a "name=httpd state=absent"
+```
+
+ ### service模块
+
+**功能：**服务管理
+
+**示例**
+
+```bash
+# 启动服务并设置为开机自启动
+ansible all -m service -a "name=httpd state=started enabled=yes"
+
+# 停止服务
+ansible all -m service -a "name=httpd state=stopped"
+
+# 重新加载服务配置
+ansible all -m service -a "name=httpd state=reloaded"
+
+# 重启服务
+ansible all -m service -a "name=httpd state=restart"
+```
+
+### user模块
+
+**功能：**管理用户
+
+**示例**
+
+```bash
+# 创建用户
+ansible all -m user -a 'name=user1 comment="test user" uid=2048 home=/home/user1 group=root'
+
+ansible all -m user -a 'name=nginx comment=nginx uid=88 group=nginx groups="root,daemon" shell=/sbin/nologin system=yes create_home=no home=/data/nginx non_unique=yes'
+
+# 删除用户及家目录等数据
+ansible all -m user -a 'name=nginx state=absent remove=yes'
+```
+
+### group模块
+
+功能：创建组
+
+示例
+
+```bash
+# 创建组
+ansible all -m group -a 'name=nginx gid=88 system=yes'
+# 删除组
+ansible all -m group -a 'name=nginx state=absent'
+```
+
+### Lineinfile模块
+
+ansible在使用sed进行替换时，经常会遇到需要转义的问题，而且ansible在遇到特殊符号进行替换时，存在问题，无法正常进行替换。ansible提供了两个模块：`lineinfile`和`replace`模块，可以方便的进行替换
+
+功能：相当于sed，可以修改文件内容
+
+示例
+
+```bash
+# 将path指定文件的正则匹配的行，替换成line指定的内容
+ansible all -m lineinfile -a "path=/etc/selinux/config regexp='^SELINUX=' line='SELINUX=disabled'"
+
+# 删除dest指定文件的正则匹配的行
+ansible all -m lineinfile -a 'dest=/etc/fstab state=absent regexp="^#"'
+```
+
+### replace模块
+
+类似于sed做替换
+
+示例
+
+```bash
+ansible all -m replace -a "path=/etc/fstab regexp='^(UUID.*)' replace='#\1'"
+
+ansible all -m replace -a "path=/etc/fstab regexp='^#(.*)' replace='\1'"
+```
+
+### setup模块
+
+功能：主要用来收集主机的系统信息，这些facts信息可以直接以变量的形式使用，但是如果主机较多，会影响执行速度，可以使用`gather_facts: no`来禁止ansible收集facts信息
+
+```bash
+ansible all -m setup -a "filter"
+```
+
