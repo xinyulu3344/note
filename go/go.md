@@ -1,3 +1,21 @@
+# golang的安装
+
+> https://studygolang.com/dl
+> 
+
+```bash
+export WORKSPACE="$HOME/workspace" # 设置工作目录
+# Go envs
+export GOROOT=/usr/local/go/go # GOROOT 设置
+export GOPATH=$WORKSPACE/golang # GOPATH 设置
+export GOBIN="$GOPATH/bin"
+export GO111MODULE=on # 开启 Go moudles 特性
+export GOPROXY=https://goproxy.cn,direct # 安装 Go 模块时，代理服务器设置
+export GOPRIVATE=
+```
+
+
+
 # 循环
 
 ```go
@@ -33,38 +51,140 @@ func loop3() {
 
 ## if
 
-## switch
+## switch用法
 
 ```go
-func switchtest1() {
-	switch 8 {
-	case 1:
-		fmt.Println(1)
-	case 2:
-		fmt.Println(2)
-	case 8:
-		fmt.Println(8)
-	case 9:
-		fmt.Println(1)
-	default:
-		fmt.Println(8)
-	}
+func TestSwitch1(t *testing.T) {
+    grade := "A"
+    switch grade {
+    case "A":
+        fmt.Println("优秀")
+    case "B":
+        fmt.Println("良好")
+    default:
+        fmt.Println("一般")
+    }
 }
 ```
 
 ```go
-func switchtest2() {
-	t := time.Now()
-	switch {
-	case t.Hour() < 12:
-		fmt.Println("Good morning!")
-	case t.Hour() < 17:
-		fmt.Println("Good morning!")
-	default:
-		fmt.Println("Good morning!")
-	}
+func TestSwitch2(t *testing.T) {
+    week := 2
+    switch week {
+    case 1, 2, 3, 4, 5:  // case可以多条件
+        fmt.Println("工作日")
+    case 6, 7:
+        fmt.Println("周末")
+    }
 }
 ```
+
+```go
+func TestSwitch3(t *testing.T) {
+    score := 80
+    switch {
+    case score >= 90: // case可以是个表达式
+        fmt.Println("优秀")
+    case score >= 80:
+        fmt.Println("良好")
+    default:
+        fmt.Println("好好学习吧")
+    }
+}
+```
+
+```go
+func TestSwitch4(t *testing.T) {
+    a := 100
+    switch a {
+    case 100:
+        fmt.Println(100)
+        fallthrough // 执行下一个case
+    case 200:
+        fmt.Println(200)
+    default:
+        fmt.Println(300)
+    }
+}
+```
+
+# 闭包
+
+```go
+func Add() func(y int) int {
+    var x int
+    return func(y int) int {
+        x += y
+        return x
+    }
+}
+
+func TestAdd(t *testing.T) {
+    f := Add()
+    fmt.Println(f(10)) // 10
+    fmt.Println(f(20)) // 30
+    fmt.Println(f(30)) // 60
+}
+```
+
+# 递归
+
+函数内部调用函数自身的函数称为递归函数
+
+1. 递归就是自己调用自己
+2. 必须先定义函数的退出条件，没有退出条件，递归将成为死循环
+3. golang的递归函数很可能会产生一大堆的goroutine，也很可能会出现栈空间内存溢出问题
+
+```go
+// 阶乘
+func Factorial(n int) int {
+    if n < 1 {
+        return 0
+    }
+    if n == 1 { // 退出条件
+        return 1
+    }
+    return n * Factorial(n - 1)
+}
+```
+
+```go
+// 斐波那契数列
+func Fibonacci(n int) int {
+    if n == 1 || n == 2 {
+        return 1
+    }
+    return Fibonacci(n - 1) + Fibonacci(n - 2)
+}
+```
+
+# init函数
+
+init函数先于main函数执行，实现包级别的一些初始化操作
+
+init函数的主要特点：
+
+* 先于main自动执行，不能被其他函数调用
+* init函数没有输入参数和返回值
+* 每个包可以有多个init函数，包的每个源文件可以有多个init函数，执行顺序没有明确定义
+* 不同包的init函数执行顺序按照包导入的依赖关系决定执行顺序
+
+golang初始化顺序：变量初始化 -> init() -> main()
+
+# 类型定义和类型别名
+
+类型定义和类型别名的区别
+
+1. 类型定义相当于定义了一个新的类型，和之前的类型不同；类型别名没有定义新类型，只是给已有的类型取了一个别名
+2. 类型别名只会在代码中出现，在编译完成后并不会继续存在
+3. 类型别名可以调用原来类型拥有的方法。类型定义的新类型无法调用原类型的方法
+
+```go
+type NewType Type // 类型定义
+type NewType = Type // 类型别名
+```
+
+
 
 # strings
 
@@ -88,7 +208,7 @@ func switchtest2() {
 | strings.Itos(i int)                                        | 把一个整数i转换成字符串                                |
 | strings.Atoi(str string) (int, error)                      | 把一个字符串转成整数                                   |
 
-# time
+
 
 # 类型断言
 
@@ -143,8 +263,6 @@ dict := map[string]int{"张三":18,"李四":19}
 
 
 
-
-
 # 结构体
 
 ## 结构体定义
@@ -165,7 +283,7 @@ var stu3 *Student = &Student{name: "luxinyu", age:18}
 var stu4 *Student = new(Student)
 ```
 
-## 链表
+# 链表
 
 ## 遍历列表
 
@@ -309,6 +427,47 @@ func main() {
 }
   
 ```
+
+# 标准库
+
+## os
+
+
+
+## time
+
+Timer是定时器，可以实现一些定时操作，内部也是通过channel来实现的
+
+```go
+// 1s之后打印时间
+func TestTimer(t *testing.T) {
+    timer := time.NewTimer(time.Second)
+    fmt.Println(time.Now().Format(time.RFC3339Nano))
+    t1 :=<- timer.C
+    fmt.Println(t1.Format(time.RFC3339Nano))
+}
+
+// 1s之后打印时间
+func TestAfter(t *testing.T) {
+    fmt.Println(time.Now().Format(time.RFC3339Nano))
+    t1 :=<- time.After(time.Second)
+    fmt.Println(t1.Format(time.RFC3339Nano))
+}
+```
+
+Ticker支持周期性定时，Timer只能定时一次
+
+```go
+// 每隔1s打印时间
+func TestTick(t *testing.T) {
+    timer := time.Tick(time.Second)
+    for t := range timer {
+        fmt.Println(t.Format("2006-01-02 15:04:05.000"))
+    }
+}
+```
+
+
 
 # 反射
 
