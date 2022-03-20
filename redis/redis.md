@@ -45,7 +45,8 @@ timeout 0
 # warning (only very important / critical messages are logged)
 loglevel notice
 
-# 指定日志记录位置。默认为""，表示标准输出。如果配置redis为守护进程方式运行，并且这里配置为标准输出，则日志将会被发给/dev/null
+# 指定日志记录位置。默认为""，表示标准输出。
+# 如果配置redis为守护进程方式运行，并且这里配置为标准输出，则日志将会被发给/dev/null
 logfile ""
 
 # 设置数据库的数量。默认数据库为0，可以使用SELECT <dbid>命令在连接上指定数据库id
@@ -57,7 +58,8 @@ logfile ""
 # save 60 10000
 # save <seconds> <changes>
 
-# 指定存储至本地数据库时是否压缩数据，默认是yes，redis采用LZF压缩算法压缩，如果为了节省CPU时间，可以设置为no关闭该选项，但会导致数据库文件变的巨大
+# 指定存储至本地数据库时是否压缩数据，默认是yes。
+# redis采用LZF压缩算法压缩，如果为了节省CPU时间，可以设置为no关闭该选项，但会导致数据库文件变的巨大
 rdbcompression yes
 
 # 指定本地数据库文件名，默认值为dump.rdb
@@ -75,13 +77,24 @@ masterauth <master-password>
 # 设置redis连接密码，如果配置了连接密码，客户端在连接redis时需要通过AUTH <password>命令提供密码
 requirepass foobared
 
-# 设置同一时间最大客户端连接数，默认无限制，redis可以同时打开的客户端连接数为Redis进程可以打开的最大文件描述符数，如果设置maxclients 0，表示不做限制。当客户端连接数达到上限时，redis会关闭新的连接，并向客户端返回max number of clients reached错误信息
+# master端直接将RDB file传到slave socket，不需要与disk进行交互。
+# 无磁盘diskless方式适合磁盘读写速度慢但网络带宽非常高的环境
+repl-diskless-sync no
+
+# 设置同一时间最大客户端连接数，默认无限制。
+# redis可以同时打开的客户端连接数为Redis进程可以打开的最大文件描述符数，如果设置maxclients 0，表示不做限制。
+# 当客户端连接数达到上限时，redis会关闭新的连接，并向客户端返回max number of clients reached错误信息
 maxclients 10000
 
-# 指定redis最大内存限制，redis在启动时，会把数据加载到内存中，达到最大内存后，redis会先尝试清除已到期或即将到期的Key，当此方法处理后，仍然到达最大内存设置，将无法再进行写入操作，但仍然可以进行读取操作。Redis新的vm机制，会把key存放内存，value存放在swap区
+# 指定redis最大内存限制，redis在启动时，会把数据加载到内存中。
+# 达到最大内存后，redis会先尝试清除已到期或即将到期的Key，
+# 当此方法处理后，仍然到达最大内存设置，将无法再进行写入操作，但仍然可以进行读取操作。
+# Redis新的vm机制，会把key存放内存，value存放在swap区
 maxmemory <bytes>
 
-# 指定是否在每次更新操作后进行日志记录，Redis在默认情况下是异步的把数据写入磁盘，如果不开启，可能会在断电时导致一段时间内的数据丢失。因为redis本身同步数据文件是按save条件来同步的。
+# 指定是否在每次更新操作后进行日志记录。
+# Redis在默认情况下是异步的把数据写入磁盘，如果不开启，可能会在断电时导致一段时间内的数据丢失。
+# 因为redis本身同步数据文件是按save条件来同步的。
 appendonly no
 
 # 指定更新日志文件名，默认为appendonly.aof
@@ -137,7 +150,7 @@ cat correct6.txt |redis-cli -a 'Lxy320826!!' --pipe
 
 **工作流程**
 
-![image-20210801211032160](image/image-20210801211032160.png)
+![image-20210801211032160](images/image-20210801211032160.png)
 
 **slave连接master的三种方式**
 
@@ -163,7 +176,7 @@ cat correct6.txt |redis-cli -a 'Lxy320826!!' --pipe
 **slave断开master连接**
 
 ```
-slaveof no noe
+slaveof no one
 ```
 
 #### 数据同步阶段
@@ -184,7 +197,7 @@ slaveof no noe
 >总体：完成了数据克隆
 
 
-![image-20210801233559219](image/image-20210801233559219.png)
+![image-20210801233559219](images/image-20210801233559219.png)
 
 * 全量复制
 
@@ -271,7 +284,7 @@ slaveof no noe
 
   - slave记录已接收的信息对应的offset
 
-    ![img](image/20200608143149.png)
+    ![img](images/20200608143149.png)
 
 ##### 主从服务器复制偏移量
 
@@ -284,7 +297,7 @@ slaveof no noe
 
 ##### 数据同步+命令传播阶段工作流程
 
-![img](image/20200608143228.png)
+![img](images/20200608143228.png)
 
 #### 心跳机制
 
@@ -317,7 +330,9 @@ slaveof no noe
 
 #### 完整流程
 
-![img](image/20200608143241.png)
+![img](images/20200608143241.png)
+
+
 
 #### 主从复制常见问题
 
@@ -329,4 +344,13 @@ slaveof no noe
 
 1. master内部创建master_replid变量，使用runid相同的策略生成，长度41位，并发送给所有slave
 2. 在master关闭时执行命令`shutdown save` ，进行RDB持久化，将runid和offset保存到RDB文件中。通过`redis-check-rdb` 命令可以查看该信息
+
+### 主从复制优化
+
+1. 在master中配置`repl-diskless-sync yes`启用无磁盘复制，避免全量同步时的磁盘IO
+2. Redis单节点上的内存占用不要太大，减少RDB导致的过多磁盘IO
+3. 适当提高`repl_baklog`的大小，发现slave宕机时尽快实现故障恢复，尽可能避免全量同步
+4. 限制一个master上的slave的数量，如果实在是太多slave，则可以采用主-从-从链式结构，减少master压力
+
+
 
