@@ -154,3 +154,42 @@ this.$off('showName') // 解绑一个自定义事件
 
 ## 全局事件总线
 
+是一种组件间通信的方式，适用于任意组件间通信
+
+安装全局事件总线
+
+main.js
+
+```js
+new Vue({
+  ...
+  beforeCreate() {
+    Vue.prototype.$bus = this // 安装全局事件总线
+  },
+  ...
+})
+```
+
+使用事件总线
+
+接收数据：A组件想接收数据，则在A组件中给$bus绑定自定义事件，事件的回调留在A组件自身
+
+```vue
+methods() {
+  demo(data){...}
+},
+mounted() {
+  this.$bus.$on('xxx', this.demo)
+}
+```
+
+提供数据
+
+```vue
+this.$bus.$emit('xxx', 数据)
+```
+
+最好在beforeDestroy钩子中，用$off去解绑当前组件所用到的事件
+
+## 消息订阅与发布
+
