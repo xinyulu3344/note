@@ -128,7 +128,55 @@ function f1() {
 }
 ```
 
+# 模板字符串
+
+```js
+let pname = 'zhangsan'
+let hi = `my name is ${pname}`
+console.log(hi) // my name is zhangsan
+```
+
+# 函数
+
 
 
 # 解构赋值
+
+## 数组
+
+```js
+// 数组解构赋值
+let [a, b, c] = [1, 2, 3]
+console.log(a, b, c) // 1 2 3
+
+let [d, [e], f] = [1, [2, 3], 4]
+console.log(d, e, f) // 1 2 4
+
+let [g, ...arr] = [2, 3, 4]
+console.log(g, arr) // 2 [3, 4]
+
+// 默认值
+// 默认值只有当成员是undefined的时候才会生效
+let [h, i = 2, ...j] = [1]
+console.log(h, i, j) // 1 2 []
+```
+
+## 对象
+
+```js
+// 对象解构
+let { bar } = { foo: 'aaa', bar: 'bbb' }
+console.log(bar) // 'bbb'
+
+let { log } = console
+log('hello') // 'hello'
+
+// 找到同名属性，赋值给一个变量
+let { foo: baz} = { foo: 'aaa', bar: 'bbb'}
+console.log(baz) // 'aaa'
+
+// 默认值
+let {x: y = 3} = {x: 5}
+let {x = 3} = {}
+```
 
