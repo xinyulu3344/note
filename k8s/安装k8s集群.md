@@ -177,7 +177,7 @@ yum list docker-ce.x86_64 --showduplicates | sort -r
 所有节点安装docker，注意版本
 
 ```bash
-yum install -y docker-ce-17.09.1.ce-1.el7.centos
+yum install -y docker-ce-19.03.9-3.el7
 ```
 
 启动并开机自启docker
@@ -359,5 +359,23 @@ image: registry.cn-hangzhou.aliyuncs.com/google_containers/metrics-server-amd64:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.3/aio/deploy/recommended.yaml
+```
+
+官方的dashboard不好用，可以用kuboard，国人开发
+
+[kuboard](https://www.kuboard.cn)
+
+## 配置kube-proxy使用ipvs
+
+编辑kube-proxy的ConfigMap，将mode: ""改为mode: "ipvs"
+
+```bash
+kubectl edit cm kube-proxy -n kube-system
+```
+
+删除所有kube-proxy的pod，ds控制器会创建新的pod。
+
+```bash
+kubectl delete pods kube-proxy-xsm4h -n kube-system
 ```
 
