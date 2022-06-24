@@ -142,7 +142,7 @@ ip_vs
 ip_vs_rr
 ip_vs_wrr
 ip_vs_sh
-nf_conntrack_ipv4
+nf_conntrack
 ip_tables
 ip_set
 xt_set
@@ -161,7 +161,7 @@ systemctl enable --now systemd-modules-load.service
 检查模块是否加载
 
 ```bash
-lsmod | grep -e ip_vs -e nf_conntrack_ipv4
+lsmod | grep -e ip_vs -e nf_conntrack
 ```
 
 ## 基本组件安装
