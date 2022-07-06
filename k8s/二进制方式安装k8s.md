@@ -25,6 +25,8 @@ cp etcd-v3.4.13-linux-amd64/etcd{,ctl} /usr/local/bin/
 
 ### 生成证书所需配置文件准备
 
+参考 https://github.com/dotbalo/k8s-ha-install 上的配置
+
 **etcd-ca-csr.json**
 
 ```json
@@ -236,8 +238,8 @@ cp etcd-v3.4.13-linux-amd64/etcd{,ctl} /usr/local/bin/
 ```bash
 wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -O cfssl
 wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -O cfssljson
-chmod u+x /usr/local/bin/cfssljson
 mv cfssl cfssljson /usr/local/bin
+chmod u+x /usr/local/bin/cfssljson
 ```
 
 创建证书目录
@@ -252,7 +254,7 @@ mkdir -p /etc/kubernetes/pki
 k8s-master01节点生成etcd CA证书和CA证书的key
 
 ```bash
-cfssl gencert 、
+cfssl gencert \
   -initca etcd-ca-csr.json | cfssljson -bare /etc/etcd/ssl/etcd-ca
 # 生成etcd-ca.csr  etcd-ca-key.pem  etcd-ca.pem
 ```
@@ -404,7 +406,7 @@ kubectl config set-credentials system:kube-scheduler \
 ```bash
 kubectl config set-context system:kube-scheduler@kubernetes \
   --cluster=kubernetes \
-  --user=system:kube-schedule \
+  --user=system:kube-scheduler \
   --kubeconfig=/etc/kubernetes/scheduler.kubeconfig
 ```
 
@@ -415,7 +417,7 @@ kubectl config use-context system:kube-scheduler@kubernetes \
 
 #### 生成admin证书
 
-过程和上面一样
+过程和上面一样，可以将该文件拷贝到~/.kube/config，后续可以用kubectl管理集群
 
 ```bash
 cfssl gencert \
@@ -491,7 +493,7 @@ advertise-client-urls: https://192.168.25.3:2379
 discovery:
 discovery-fallback: 'proxy'
 discovery-proxy:
-discovery-srv:jjjjj
+discovery-srv:
 initial-cluster: 'k8s-master01=https://192.168.25.3:2380'
 initial-cluster-token: 'etcd-k8s-cluster'
 initial-cluster-state: 'new'
@@ -568,9 +570,9 @@ etcdctl --endpoints="192.168.25.3:2379" --cacert=/etc/kubernetes/pki/etcd/etcd-c
 
 ```
 
-## kubernetes组件配置
+## master组件配置
 
-### 创建Service
+### kube-apiserver
 
 所有master节点创建**/usr/lib/systemd/system/kube-apiserver.service**
 
@@ -628,9 +630,9 @@ WantedBy=multi-user.target
 systemctl daemon-reload && systemctl enable --now kube-apiserver
 ```
 
-## ControllerManager
+### ControllerManager
 
-所有Master节点配置kube-controller-manager.service
+所有Master节点配置/usr/lib/systemd/system/kube-controller-manager.service
 
 注意本文档使用的k8s Pod网段为`172.16.0.0/12`，该网段不能和宿主机的网段、k8s Service网段重复
 
@@ -672,59 +674,441 @@ WantedBy=multi-user.target
 systemctl daemon-reload && systemctl enable --now kube-controller-manager.service
 ```
 
+### Scheduler
+
+所有Master节点配置/usr/lib/systemd/system/kube-scheduler.service
+
+```bash
+[Unit]
+Description=Kubernetes Scheduler
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kube-scheduler \
+    --v=2 \
+    --logtostderr=true \
+    --address=127.0.0.1 \
+    --leader-elect=true \
+    --kubeconfig=/etc/kubernetes/scheduler.kubeconfig
+
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
 ```
-* 节点配置文件 etcd.conf
 
-  * etcd1
-  
-    ```yml
-    name: etcd1
-    initial-advertise-peer-urls: "http://10.0.0.21:2380"
-    listen-peer-urls: "http://10.0.0.21:2380"
-    listen-client-urls: "http://127.0.0.1:2379,http://10.0.0.21:2379"
-    advertise-client-urls: "http://10.0.0.21:2379"
-    initial-cluster-token: etcd-test-cluster
-    initial-cluster: "etcd1=http://10.0.0.21:2380,etcd2=http://10.0.0.22:2380,etcd3=http://10.0.0.23:2380"
-    initial-cluster-state: new
-    auto-compaction-retention: 2h
-    auto-compaction-mode: "revision"
-    quota-backend-bytes: 17179869184
-    snapshot-count: 5000       
-    ```
+```bash
+systemctl daemon-reload && systemctl enable --now kube-scheduler.service
+```
 
-  * etcd2
+## TLS Bootstrapping配置
 
-    ```yml
-    name: etcd2
-    initial-advertise-peer-urls: "http://10.0.0.22:2380"
-    listen-peer-urls: "http://10.0.0.22:2380"
-    listen-client-urls: "http://127.0.0.1:2379,http://10.0.0.22:2379"
-    advertise-client-urls: "http://10.0.0.22:2379"
-    initial-cluster-token: etcd-test-cluster
-    initial-cluster: "etcd1=http://10.0.0.21:2380,etcd2=http://10.0.0.22:2380,etcd3=http://10.0.0.23:2380"
-    initial-cluster-state: new
-    auto-compaction-retention: 2h
-    auto-compaction-mode: "revision"
-    quota-backend-bytes: 17179869184
-    snapshot-count: 5000
-    ```
+用于自动给node节点上的kubelet颁发证书
 
-  * etcd3
+### bootstrap的yaml文件
 
-    ```yml
-    name: etcd3
-    initial-advertise-peer-urls: "http://10.0.0.23:2380"
-    listen-peer-urls: "http://10.0.0.23:2380"
-    listen-client-urls: "http://127.0.0.1:2379,http://10.0.0.23:2379"
-    advertise-client-urls: "http://10.0.0.23:2379"
-    initial-cluster-token: etcd-test-cluster
-    initial-cluster: "etcd1=http://10.0.0.21:2380,etcd2=http://10.0.0.22:2380,etcd3=http://10.0.0.23:2380"
-    initial-cluster-state: new
-    auto-compaction-retention: 2h
-    auto-compaction-mode: "revision"
-    quota-backend-bytes: 17179869184
-    snapshot-count: 5000
+```bash
+cat > bootstrap.secret.yaml << EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bootstrap-token-c8ad9c
+  namespace: kube-system
+type: bootstrap.kubernetes.io/token
+stringData:
+  description: "The default bootstrap token generated by 'kubelet '."
+  token-id: c8ad9c
+  token-secret: 2e4d610cf3e7426e
+  usage-bootstrap-authentication: "true"
+  usage-bootstrap-signing: "true"
+  auth-extra-groups:  system:bootstrappers:default-node-token,system:bootstrappers:worker,system:bootstrappers:ingress
+ 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubelet-bootstrap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:node-bootstrapper
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:bootstrappers:default-node-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-autoapprove-bootstrap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:bootstrappers:default-node-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-autoapprove-certificate-rotation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:nodes
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: system:kube-apiserver-to-kubelet
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes/proxy
+      - nodes/stats
+      - nodes/log
+      - nodes/spec
+      - nodes/metrics
+    verbs:
+      - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kube-apiserver
+  namespace: ""
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-apiserver-to-kubelet
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: kube-apiserver
+EOF
+```
 
-    ```
+```bash
+kubectl apply -f bootstrap.secret.yaml
+```
+
+```bash
+kubectl config set-cluster kubernetes \
+  --certificate-authority=/etc/kubernetes/pki/ca.pem \
+  --embed-certs=true \
+  --server=https://192.168.25.3:6443 \
+  --kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig
+```
+
+```bash
+# 此处的--token，要与bootstrap.secret.yaml文件中，bootstrap-token-c8ad9c这个Secret的token-id和token-secret保持一致
+kubectl config set-credentials tls-bootstrap-token-user \
+  --token=c8ad9c.2e4d610cf3e7426e \
+  --kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig
+```
+
+```bash
+kubectl config set-context tls-bootstrap-token-user@kubernetes \
+  --cluster=kubernetes \
+  --user=tls-bootstrap-token-user \
+  --kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig
+```
+
+```bash
+kubectl config use-context tls-bootstrap-token-user@kubernetes \
+  --kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig
+```
+
+## node节点配置
+
+### 复制证书
+
+```bash
+scp /etc/etcd/ssl/{etcd-ca.pem,etcd.pem,etcd-key.pem} root@192.168.32.3:/etc/etcd/ssl
+scp /etc/kubernetes/pki/{ca.pem,ca-key.pem,front-proxy-ca.pem} root@192.168.32.3:/etc/kubernetes/pki/
+scp /etc/kubernetes/bootstrap-kubelet.kubeconfig root@192.168.32.3:/etc/kubernetes
+```
+
+### kubelet配置
+
+node节点创建相关目录
+
+```bash
+mkdir -p /var/lib/kubelet /var/log/kubernetes /usr/lib/systemd/system/kubelet.service.d /etc/kubernetes/manifests
+```
+
+node节点配置kubelet.service
+
+```bash
+cat > /usr/lib/systemd/system/kubelet.service << EOF
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/kubernetes/kubernetes
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/local/bin/kubelet
+
+Restart=always
+StartLimitInterval=0
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+node节点配置kubelet service的配置文件
+
+```bash
+cat > /usr/lib/systemd/system/kubelet.service.d/10-kubelet.conf << EOF
+[Service]
+Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig --kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
+
+Environment="KUBELET_SYSTEM_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin"
+
+Environment="KUBELET_CONFIG_ARGS=--config=/etc/kubernetes/kubelet-conf.yml --pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1"
+Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' "
+
+ExecStart=
+ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_EXTRA_ARGS
+EOF
+```
+
+创建kubelet的配置文件/etc/kubernetes/kubelet-conf.yml
+
+```bash
+cat > /etc/kubernetes/kubelet-conf.yml << EOF
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+address: 0.0.0.0
+port: 10250
+readOnlyPort: 10255
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.pem
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupDriver: systemd
+cgroupsPerQOS: true
+clusterDNS:
+- 10.96.0.10
+clusterDomain: cluster.local
+containerLogMaxFiles: 5
+containerLogMaxSize: 10Mi
+contentType: application/vnd.kubernetes.protobuf
+cpuCFSQuota: true
+cpuManagerPolicy: none
+cpuManagerReconcilePeriod: 10s
+enableControllerAttachDetach: true
+enableDebuggingHandlers: true
+enforceNodeAllocatable:
+- pods
+eventBurst: 10
+eventRecordQPS: 5
+evictionHard:
+  imagefs.available: 15%
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
+evictionPressureTransitionPeriod: 5m0s
+failSwapOn: true
+fileCheckFrequency: 20s
+hairpinMode: promiscuous-bridge
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 20s
+imageGCHighThresholdPercent: 85
+imageGCLowThresholdPercent: 80
+imageMinimumGCAge: 2m0s
+iptablesDropBit: 15
+iptablesMasqueradeBit: 14
+kubeAPIBurst: 10
+kubeAPIQPS: 5
+makeIPTablesUtilChains: true
+maxOpenFiles: 1000000
+maxPods: 110
+nodeStatusUpdateFrequency: 10s
+oomScoreAdj: -999
+podPidsLimit: -1
+registryBurst: 10
+registryPullQPS: 5
+resolvConf: /etc/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 2m0s
+serializeImagePulls: true
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 4h0m0s
+syncFrequency: 1m0s
+volumeStatsAggPeriod: 1m0s
+EOF
+```
+
+### kube-proxy配置
+
+```bash
+# 创建kube-proxy的ServiceAccount
+kubectl -n kube-system create sa kube-proxy
+
+# 创建ClusterRoleBinding，给kube-proxy这个sa绑定系统角色system:node-proxier
+kubectl create clusterrolebinding system:kube-proxy --clusterrole system:node-proxier --serviceaccount kube-system:kube-proxy
+
+# 获取sa对应的secret
+SECRET=$(kubectl -n kube-system get sa kube-proxy --output=jsonpath='{.secrets[0].name}')
+
+# 获取sa对应的secret token
+JWT_TOKEN=$(kubectl -n kube-system get secret $SECRET --output=jsonpath='{.data.token}' | base64 -d)
+```
+
+在master节点上，配置kube-proxy的kubeconfig，发送给node节点
+
+```bash
+kubectl config set-cluster kubernetes \
+  --certificate-authority=/etc/kubernetes/pki/ca.pem \
+  --embed-certs=true \
+  --server=https://192.168.25.3:6443 \
+  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig
+```
+
+```bash
+kubectl config set-credentials kubernetes \
+  --token=${JWT_TOKEN} \
+  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig
+```
+
+```bash
+kubectl config set-context kubernetes \
+  --cluster=kubernetes \
+  --user=kubernetes \
+  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig
+```
+
+```bash
+kubectl config use-context kubernetes \
+  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig
+```
+
+创建配置文件
+
+```yaml
+cat > /etc/kubernetes/kube-proxy.conf << EOF
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: 0.0.0.0
+clientConnection:
+  acceptContentTypes: ""
+  burst: 10
+  contentType: application/vnd.kubernetes.protobuf
+  kubeconfig: /etc/kubernetes/kube-proxy.kubeconfig
+  qps: 5
+# 填写pod的网段
+clusterCIDR: 172.16.0.0/12
+configSyncPeriod: 15m0s
+conntrack:
+  max: null
+  maxPerCore: 32768
+  min: 131072
+  tcpCloseWaitTimeout: 1h0m0s
+  tcpEstablishedTimeout: 24h0m0s
+enableProfiling: false
+healthzBindAddress: 0.0.0.0:10256
+hostnameOverride: ""
+iptables:
+  masqueradeAll: false
+  masqueradeBit: 14
+  minSyncPeriod: 0s
+  syncPeriod: 30s
+ipvs:
+  masqueradeAll: true
+  minSyncPeriod: 5s
+  scheduler: "rr"
+  syncPeriod: 30s
+kind: KubeProxyConfiguration
+metricsBindAddress: 127.0.0.1:10249
+mode: "ipvs"
+nodePortAddresses: null
+oomScoreAdj: -999
+portRange: ""
+udpIdleTimeout: 250ms
+EOF
+```
+
+创建Service
+
+```bash
+cat > /usr/lib/systemd/system/kube-proxy.service << EOF
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kube-proxy \
+  --config=/etc/kubernetes/kube-proxy.conf \
+  --v=2
+
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+启动kube-proxy
+
+```bash
+systemctl daemon-reload
+systemctl enable --now kube-proxy
+```
+
+## 部署Calico
+
+```bash
+curl https://docs.projectcalico.org/archive/v3.21/manifests/calico-etcd.yaml -o calico-etcd.yaml
+```
+
+修改calico-etcd.yaml配置
+
+```bash
+ETCD_CA=`cat /etc/kubernetes/pki/etcd/etcd-ca.pem | base64 -w 0`
+ETCD_CERT=`cat /etc/kubernetes/pki/etcd/etcd.pem | base64 -w 0`
+ETCD_KEY=`cat /etc/kubernetes/pki/etcd/etcd-key.pem | base64 -w 0`
+sed -i "s@# etcd-key: null@etcd-key: ${ETCD_KEY}@g" calico-etcd.yaml
+sed -i "s@# etcd-cert: null@etcd-cert: ${ETCD_CERT}@g" calico-etcd.yaml
+sed -i "s@# etcd-ca: null@etcd-ca: ${ETCD_CA}@g" calico-etcd.yaml
+```
+
+```bash
+sed -i 's#etcd_ca: ""#etcd_ca: "/calico-secrets/etcd-ca"#g' calico-etcd.yaml
+sed -i 's#etcd_cert: ""#etcd_cert: "/calico-secrets/etcd-cert"#g' calico-etcd.yaml
+sed -i 's#etcd_key: ""#etcd_key: "/calico-secrets/etcd-key"#g' calico-etcd.yaml
+```
+
+```yaml
+# 修改name: CALICO_IPV4POOL_CIDR
+- name: CALICO_IPV4POOL_CIDR
+  value: "172.16.0.0/12"
 ```
 
