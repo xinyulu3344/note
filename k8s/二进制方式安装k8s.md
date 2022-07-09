@@ -476,6 +476,7 @@ openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.p
 **/etc/etcd/etcd.config.yml**
 
 ```yaml
+cat > /etc/etcd/etcd.config.yml << 'EOF'
 name: k8s-master01
 data-dir: /var/lib/etcd
 wal-dir: /var/lib/etcd/wal
@@ -523,13 +524,15 @@ log-outputs: [stderr]
 force-new-cluster: false
 auto-compaction-mode: periodic
 auto-compaction-retention: "1"
+EOF
 ```
 
 ### 创建Service
 
 **/usr/lib/systemd/system/etcd.service**
 
-```
+```bash
+cat > /usr/lib/systemd/system/etcd.service << 'EOF'
 [Unit]
 Description=Etcd Service
 Documentation=https://coreos.com/etcd/docs/latest/
@@ -545,6 +548,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 Alias=etcd3.service
+EOF
 ```
 
 ```bash
@@ -577,6 +581,7 @@ etcdctl --endpoints="192.168.25.3:2379" --cacert=/etc/kubernetes/pki/etcd/etcd-c
 所有master节点创建**/usr/lib/systemd/system/kube-apiserver.service**
 
 ```bash
+cat > /usr/lib/systemd/system/kube-apiserver.service << 'EOF'
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
@@ -624,6 +629,7 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
 ```bash
@@ -637,6 +643,7 @@ systemctl daemon-reload && systemctl enable --now kube-apiserver
 注意本文档使用的k8s Pod网段为`172.16.0.0/12`，该网段不能和宿主机的网段、k8s Service网段重复
 
 ```bash
+cat > /usr/lib/systemd/system/kube-controller-manager.service << 'EOF'
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/kubernetes/kubernetes
@@ -662,12 +669,14 @@ ExecStart=/usr/local/bin/kube-controller-manager \
     --cluster-cidr=172.16.0.0/12 \
     --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.pem \
     --node-cidr-mask-size=24
+    --experimental-cluster-signing-duration=876000h0m0s
 
 Restart=always
 RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
 ```bash
@@ -875,14 +884,15 @@ EOF
 node节点配置kubelet service的配置文件
 
 ```bash
-cat > /usr/lib/systemd/system/kubelet.service.d/10-kubelet.conf << EOF
+cat > /usr/lib/systemd/system/kubelet.service.d/10-kubelet.conf << 'EOF'
 [Service]
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.kubeconfig --kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
 
 Environment="KUBELET_SYSTEM_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin"
 
 Environment="KUBELET_CONFIG_ARGS=--config=/etc/kubernetes/kubelet-conf.yml --pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1"
-Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' "
+
+Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 --image-pull-progress-deadline=30m"
 
 ExecStart=
 ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_EXTRA_ARGS
@@ -963,6 +973,17 @@ staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
+allowedUnsafeSysctls:
+- "net.core*"
+- "net.ipv4.*"
+kubeReserved:
+  cpu: 10m
+  memory: 10Mi
+  ephemeral-storage: 10Mi
+systemReserved:
+  cpu: 10m
+  memory: 20Mi
+  ephemeral-storage: 1Gi
 EOF
 ```
 
@@ -1110,5 +1131,146 @@ sed -i 's#etcd_key: ""#etcd_key: "/calico-secrets/etcd-key"#g' calico-etcd.yaml
 # 修改name: CALICO_IPV4POOL_CIDR
 - name: CALICO_IPV4POOL_CIDR
   value: "172.16.0.0/12"
+```
+
+```bash
+kubectl apply -f calico-etcd.yaml
+```
+
+
+
+## 部署CoreDNS
+
+```bash
+git clone https://github.com/coredns/deployment.git
+cd deployment/kubernetes
+./deploy.sh -s -i 10.96.0.10 | kubectl apply -f -
+
+# 查看状态
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+## 部署Metrics Server
+
+https://github.com/kubernetes-sigs/metrics-server
+
+```bash
+# 下载yaml文件
+wget https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.4.1/components.yaml
+```
+
+修改镜像仓库地址，默认在gcr
+
+```yaml
+image: registry.cn-beijing.aliyuncs.com/dotbalo/metrics-server:v0.4.1
+```
+
+修改容器args
+
+```yaml
+- --cert-dir=/tmp
+- --secure-port=4443
+- --metric-resolution=30s
+- --kubelet-insecure-tls
+- --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+- --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.pem # change to front-proxy-ca.crt for kubeadm
+- --requestheader-username-headers=X-Remote-User
+- --requestheader-group-headers=X-Remote-Group
+- --requestheader-extra-headers-prefix=X-Remote-Extra-
+```
+
+安装
+
+```bash
+kubectl apply -f components.yaml
+```
+
+验证
+
+```bash
+kubectl top node k8s-node01
+NAME         CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+k8s-node01   87m          8%     2158Mi          56% 
+```
+
+## 部署dashboard
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.4.0/aio/deploy/recommended.yaml
+```
+
+## 验证集群可用性
+
+1. Pod必须能解析Service
+2. Pod必须能解析跨namespace的Service
+3. 每个节点都必须要能访问Kubernetes的kubernetes svc和kube-dns的svc
+4. Pod和Pod之间要能通
+   1. 同namespace能通信
+   2. 跨namespace能通信
+   3. 跨机器能通信
+
+## 生产环境关键性配置
+
+**/etc/docker/daemon.json**
+
+```bash
+cat > /etc/docker/daemon.json << 'EOF'
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "registry-mirrors": [
+      "https://registry.docker-cn.com",
+      "http://hub-mirror.c.163.com",
+      "https://docker.mirrors.ustc.edu.cn"
+  ],
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 5,
+  "log-opts": {
+      "max-size": "300m",
+      "max-file": "2"
+  },
+  "live-restore": true
+}
+EOF
+```
+
+| 配置项                   | 解释                                                         |      |
+| ------------------------ | ------------------------------------------------------------ | ---- |
+| max-concurrent-downloads | 最大下载镜像的并发数                                         |      |
+| max-concurrent-upload    | 最大上传镜像的并发数                                         |      |
+| max-size                 | 容器日志文件的最大大小                                       |      |
+| max-file                 | 容器日志文件的最大数量                                       |      |
+| live-restore             | 在Daemon不可用的时候，保持容器继续运行，减少在Daemon进行升级或者出现问题的时候容器的停机时间 |      |
+
+**/usr/lib/systemd/system/kube-controller-manager.service**
+
+```bash
+# 证书有效期
+--experimental-cluster-signing-duration=876000h0m0s
+```
+
+
+
+**/usr/lib/systemd/system/kubelet.service.d/10-kubelet.conf **
+
+```bash
+# 使用更安全的加密算法
+--tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+--image-pull-progress-deadline=30m
+```
+
+**/etc/kubernetes/kubelet-conf.yml**
+
+```yaml
+allowedUnsafeSysctls:
+- "net.core*"
+- "net.ipv4.*"
+kubeReserved:
+  cpu: 10m
+  memory: 10Mi
+  ephemeral-storage: 10Mi
+systemReserved:
+  cpu: 10m
+  memory: 20Mi
+  ephemeral-storage: 1Gi
 ```
 
