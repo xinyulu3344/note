@@ -657,6 +657,7 @@ ExecStart=/usr/local/bin/kube-controller-manager \
     --root-ca-file=/etc/kubernetes/pki/ca.pem \
     --cluster-signing-cert-file=/etc/kubernetes/pki/ca.pem \
     --cluster-signing-key-file=/etc/kubernetes/pki/ca-key.pem \
+    --cluster-signing-duration=876000h0m0s \
     --service-account-private-key-file=/etc/kubernetes/pki/sa.key \
     --kubeconfig=/etc/kubernetes/controller-manager.kubeconfig \
     --leader-elect=true \
@@ -669,7 +670,6 @@ ExecStart=/usr/local/bin/kube-controller-manager \
     --cluster-cidr=172.16.0.0/12 \
     --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.pem \
     --node-cidr-mask-size=24
-    --experimental-cluster-signing-duration=876000h0m0s
 
 Restart=always
 RestartSec=10s
@@ -1244,8 +1244,8 @@ EOF
 **/usr/lib/systemd/system/kube-controller-manager.service**
 
 ```bash
-# 证书有效期
---experimental-cluster-signing-duration=876000h0m0s
+# 给kubelet签发证书的有效期
+--cluster-signing-duration=876000h0m0s
 ```
 
 
