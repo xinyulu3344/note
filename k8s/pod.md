@@ -18,6 +18,22 @@ spec:
       containerPort: 80
     - name: https
       containerPort: 443
+    # 启动探针
+    startupProbe:
+      httpGet:
+        host: # 默认是pod ip
+        path: /api/success
+        port: 80
+        scheme: HTTP
+        httpHeaders:
+        - name: 
+          value:
+      tcpSocket:
+        host: # 要连接的host name, 默认是pod IP
+        port: # 必选，检查端口
+      exec:
+        commond:
+        - xxx
     # 存活探针
     livenessProbe:
       # 使用用户自定义命令作为探针命令，该命令必须在容器中存在
@@ -65,6 +81,36 @@ spec:
   # OnFailure: 只有容器状态错误时才重启，正常退出的容器不会重启
   restartPolicy: Always
 ```
+
+## Pod的三种探针
+
+### Pod探针
+
+* startupProbe：k8s 1.16版本后新增的探测方式，用于判断容器内应用程序是否已经启动。如果配置了startupProbe，就会先禁用其他的探测，知道它成功为止，成功后将不再进行探测。
+
+* livenessProbe：用于探测容器是否运行，如果探测失败，kubelet会根据配置的重启策略进行相应的处理。若没有配置该探针，默认就是success
+
+* readinessProbe：一般用于探测容器内的程序是否健康，它的返回值如果为success，那么代表这个容器已经完成启动，并且程序已经是可以接受流量的状态。
+
+### Pod探针的检测方式
+
+* exec: 在容器内执行一个命令，如果返回值为0，则认为容器健康。
+
+* tcpSocket: 通过TCP连接检查容器内的端口是否是通的。如果是通的，就认为容器健康。
+
+* httpGet: 通过应用程序暴露的API地址来检查程序是否是正常的。如果状态码为[200-400)，则认为容器健康。
+
+### 探针检查参数配置
+
+```bash
+initialDelaySeconds: 60 # 容器初始化延迟时间，也就是容器启动后多长时间开始探测
+timeoutSeconds: 2       # 探测超时时间，默认1s
+periodSeconds: 5        # 探测周期时长，默认10s
+successThreshold: 1     # 探测多少次成功之后才认为成功
+failureThreshold: 3     # 探测多少次失败之后才认为失败，默认3次，最小为1次
+```
+
+
 
 ## Pod生命周期
 
