@@ -10,6 +10,7 @@ metadata:
     app: myapp
     tier: frontend
 spec:
+  terminationGracePeriodSeconds: 30 # 强制kill进程的时间，配合preStop实现优雅关闭进程
   containers:
   - name: myapp
     image: ikubernetes/myapp:v1
@@ -60,6 +61,13 @@ spec:
       # 容器初始化延迟时间，也就是容器启动后多长时间开始探测
       initialDelaySeconds: 10
     readinessProbe:
+    lifecycle:
+      postStart:
+      preStop:
+        exec:
+          command:
+          - sleep
+          - 10
   - name: busybox
     image: busybox:latest
     imagePullPolicy: IfNotPresent # Always: 总是下载; Never: 有就用，没有也不下载; IfNotPresent: 镜像不存在的时候就下载; 默认值: 如果镜像tag是latest，则默认为Always，否则为IfNotPresent
@@ -113,6 +121,15 @@ failureThreshold: 3     # 探测多少次失败之后才认为失败，默认3�
 
 
 ## Pod生命周期
+
+Pod删除流程
+
+1. Pod 被删除，状态置为 Terminating。
+2. kube-proxy 更新转发规则，将 Pod 从 service 的 endpoint 列表中摘除掉，新的流量不再转发到该 Pod。
+3. 如果 Pod 配置了 preStop Hook ，将会执行。
+4. kubelet 对 Pod 中各个 container 发送 SIGTERM 信号以通知容器进程开始优雅停止。
+5. 等待容器进程完全停止，如果在 terminationGracePeriodSeconds 内 (默认 30s) 还未完全停止，就发送 SIGKILL 信号强制杀死进程。
+6. 所有容器进程终止，清理 Pod 资源。
 
 ## Pod调度
 
