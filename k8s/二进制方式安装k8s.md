@@ -640,7 +640,7 @@ systemctl daemon-reload && systemctl enable --now kube-apiserver
 
 所有Master节点配置/usr/lib/systemd/system/kube-controller-manager.service
 
-注意本文档使用的k8s Pod网段为`172.16.0.0/12`，该网段不能和宿主机的网段、k8s Service网段重复
+注意本文档使用的k8s Pod网段为`172.16.0.0/24`，该网段不能和宿主机的网段、k8s Service网段重复
 
 ```bash
 cat > /usr/lib/systemd/system/kube-controller-manager.service << 'EOF'
@@ -667,7 +667,7 @@ ExecStart=/usr/local/bin/kube-controller-manager \
     --pod-eviction-timeout=2m0s \
     --controllers=*,bootstrapsigner,tokencleaner \
     --allocate-node-cidrs=true \
-    --cluster-cidr=172.16.0.0/12 \
+    --cluster-cidr=172.16.0.0/24 \
     --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.pem \
     --node-cidr-mask-size=24
 
@@ -892,7 +892,7 @@ Environment="KUBELET_SYSTEM_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/ne
 
 Environment="KUBELET_CONFIG_ARGS=--config=/etc/kubernetes/kubelet-conf.yml --pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1"
 
-Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 --image-pull-progress-deadline=30m"
+Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' --image-pull-progress-d  eadline=30m"
 
 ExecStart=
 ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_EXTRA_ARGS
@@ -973,6 +973,9 @@ staticPodPath: /etc/kubernetes/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
+tlsCipherSuites:
+- TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+- TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 allowedUnsafeSysctls:
 - "net.core*"
 - "net.ipv4.*"
@@ -1044,7 +1047,7 @@ clientConnection:
   kubeconfig: /etc/kubernetes/kube-proxy.kubeconfig
   qps: 5
 # 填写pod的网段
-clusterCIDR: 172.16.0.0/12
+clusterCIDR: 172.16.0.0/24
 configSyncPeriod: 15m0s
 conntrack:
   max: null
@@ -1130,7 +1133,7 @@ sed -i 's#etcd_key: ""#etcd_key: "/calico-secrets/etcd-key"#g' calico-etcd.yaml
 ```yaml
 # 修改name: CALICO_IPV4POOL_CIDR
 - name: CALICO_IPV4POOL_CIDR
-  value: "172.16.0.0/12"
+  value: "172.16.0.0/24"
 ```
 
 ```bash
@@ -1254,6 +1257,7 @@ EOF
 
 ```bash
 # 使用更安全的加密算法
+# --tls-cipher-suites参数在kubelet --config指定的配置文件中定义，--flag的方式要被废弃
 --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 --image-pull-progress-deadline=30m
 ```

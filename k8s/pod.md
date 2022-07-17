@@ -1,19 +1,29 @@
 ## yaml文件定义
 
 ```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pod-demo
-  namespace: default
-  labels:
+apiVersion: v1 # 必选，API版本号
+kind: Pod # 必选，Pod类型
+metadata: # 必选，元数据
+  name: pod-demo # 必选，符合RFC-1035规范的Pod名称
+  namespace: default # 可选，Pod所在的命名空间，不指定默认为default
+  labels: # 可选，标签选择器，一般用于过滤和区分pod
     app: myapp
     tier: frontend
-spec:
-  containers:
-  - name: myapp
-    image: ikubernetes/myapp:v1
-    ports:
+  annotations: # 可选，注释列表，可以写多个
+    app: myapp
+spec: # 必选，用于定义容器的详细信息
+  initContainers: # 初始化容器，在容器启动之前执行的一些初始化操作
+  - commond:
+    - sh
+    - -c
+    - echo "I am InitContainers for init some configuration"
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    name: init-container
+  containers: # 必选，容器列表
+  - name: myapp # 必选，符合RFC-1035规范的容器名称
+    image: ikubernetes/myapp:v1 # 必选，容器所用的镜像地址
+    ports: # 可选，容器需要暴露的端口列表
     - name: http
       containerPort: 80
     - name: https
