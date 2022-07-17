@@ -20,14 +20,31 @@ spec: # 必选，用于定义容器的详细信息
     image: busybox
     imagePullPolicy: IfNotPresent
     name: init-container
-  containers: # 必选，容器列表
-  - name: myapp # 必选，符合RFC-1035规范的容器名称
-    image: ikubernetes/myapp:v1 # 必选，容器所用的镜像地址
-    ports: # 可选，容器需要暴露的端口列表
+  terminationGracePeriodSeconds: 30 # 强制kill进程的时间，配合preStop实现优雅关闭进程
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
     - name: http
       containerPort: 80
     - name: https
       containerPort: 443
+    # 启动探针
+    startupProbe:
+      httpGet:
+        host: # 默认是pod ip
+        path: /api/success
+        port: 80
+        scheme: HTTP
+        httpHeaders:
+        - name: 
+          value:
+      tcpSocket:
+        host: # 要连接的host name, 默认是pod IP
+        port: # 必选，检查端口
+      exec:
+        commond:
+        - xxx
     # 存活探针
     livenessProbe:
       # 使用用户自定义命令作为探针命令，该命令必须在容器中存在
@@ -54,6 +71,13 @@ spec: # 必选，用于定义容器的详细信息
       # 容器初始化延迟时间，也就是容器启动后多长时间开始探测
       initialDelaySeconds: 10
     readinessProbe:
+    lifecycle:
+      postStart:
+      preStop:
+        exec:
+          command:
+          - sleep
+          - 10
   - name: busybox
     image: busybox:latest
     imagePullPolicy: IfNotPresent # Always: 总是下载; Never: 有就用，没有也不下载; IfNotPresent: 镜像不存在的时候就下载; 默认值: 如果镜像tag是latest，则默认为Always，否则为IfNotPresent
@@ -76,7 +100,46 @@ spec: # 必选，用于定义容器的详细信息
   restartPolicy: Always
 ```
 
+## Pod的三种探针
+
+### Pod探针
+
+* startupProbe：k8s 1.16版本后新增的探测方式，用于判断容器内应用程序是否已经启动。如果配置了startupProbe，就会先禁用其他的探测，知道它成功为止，成功后将不再进行探测。
+
+* livenessProbe：用于探测容器是否运行，如果探测失败，kubelet会根据配置的重启策略进行相应的处理。若没有配置该探针，默认就是success
+
+* readinessProbe：一般用于探测容器内的程序是否健康，它的返回值如果为success，那么代表这个容器已经完成启动，并且程序已经是可以接受流量的状态。
+
+### Pod探针的检测方式
+
+* exec: 在容器内执行一个命令，如果返回值为0，则认为容器健康。
+
+* tcpSocket: 通过TCP连接检查容器内的端口是否是通的。如果是通的，就认为容器健康。
+
+* httpGet: 通过应用程序暴露的API地址来检查程序是否是正常的。如果状态码为[200-400)，则认为容器健康。
+
+### 探针检查参数配置
+
+```bash
+initialDelaySeconds: 60 # 容器初始化延迟时间，也就是容器启动后多长时间开始探测
+timeoutSeconds: 2       # 探测超时时间，默认1s
+periodSeconds: 5        # 探测周期时长，默认10s
+successThreshold: 1     # 探测多少次成功之后才认为成功
+failureThreshold: 3     # 探测多少次失败之后才认为失败，默认3次，最小为1次
+```
+
+
+
 ## Pod生命周期
+
+Pod删除流程
+
+1. Pod 被删除，状态置为 Terminating。
+2. kube-proxy 更新转发规则，将 Pod 从 service 的 endpoint 列表中摘除掉，新的流量不再转发到该 Pod。
+3. 如果 Pod 配置了 preStop Hook ，将会执行。
+4. kubelet 对 Pod 中各个 container 发送 SIGTERM 信号以通知容器进程开始优雅停止。
+5. 等待容器进程完全停止，如果在 terminationGracePeriodSeconds 内 (默认 30s) 还未完全停止，就发送 SIGKILL 信号强制杀死进程。
+6. 所有容器进程终止，清理 Pod 资源。
 
 ## Pod调度
 
@@ -440,103 +503,6 @@ hello-1652952900   1/1           6s         2m16s
 
 ## init Container
 
-## Pod的滚动升级
-
-![image-20220519195655976](images/image-20220519195655976.png)
-
-**滚动更新的两个参数**
-
-```
-explain deployment.spec.strategy.rollingUpdate.maxSurge
-```
-
-Deployment在更新过程中不可用状态的Pod数量的上限。可以是绝对值(如5)，可以是百分比如(25%)
-
-```
-explain deployment.spec.strategy.rollingUpdate.maxUnavailable
-```
-
-用于指定在Deployment 更新Pod的过程中Pod总数超过Pod期望副本数部分的最大值。可以是绝对值(如5)，可以是百分比如(25%)
-
-**更新镜像**
-
-方式一：`set image`
-
-```bash
-kubectl set image deployment/nginx-rollingupdate nginx=nginx:1.9.1
-```
-
-方式二：`edit deployment`
-
-```bash
-kubectl edit deployment/nginx-rollingupdate
-```
-
-**查看滚动更新过程**
-
-```bash
-kubectl rollout status deployment/nginx-rollingupdate
-```
-
-## Pod的回滚
-
-**查看Deployment的部署历史**
-
-```bash
-kubectl rollout history deployment nginx-rollingupdate
-deployment.apps/nginx-rollingupdate 
-REVISION  CHANGE-CAUSE
-1         kubectl apply --filename=nginx-rollingupdate.yaml --record=true
-2         kubectl apply --filename=nginx-rollingupdate.yaml --record=true
-```
-
-创建Deployment时使用`--record`参数，就可以在`CHANGE- CAUSE`列看到每个版本使用的命令了
-
-**查看某个历史版本详情**
-
-```bash
-kubectl rollout history deployment nginx-rollingupdate --revision=2
-deployment.apps/nginx-rollingupdate with revision #2
-Pod Template:
-  Labels:       app=nginx
-        pod-template-hash=56f8998dbc
-  Annotations:  kubernetes.io/change-cause: kubectl apply --filename=nginx-rollingupdate.yaml --record=true
-  Containers:
-   nginx:
-    Image:      nginx:1.9.1
-    Port:       80/TCP
-    Host Port:  0/TCP
-    Environment:        <none>
-    Mounts:     <none>
-  Volumes:      <none>
-```
-
-**回滚版本**
-
-```bash
-# 回滚到上一个版本
-kubectl rollout undo deployment/nginx-rollingupdate
-
-# 回滚到指定版本
-kubectl rollout undo deployment/nginx-rollingupdate --to-revision=2
-```
-
-## 暂停和恢复
-
-为了避免频繁触发deployment的更新，可以先暂停更新，然后修改配置，再恢复更新
-
-**暂停**
-
-```bash
-kubectl rollout pause deployment/nginx-rollingupdate
-```
-
-**恢复**
-
-```bash
-kubectl rollout resume deployment nginx-rollingupdate
-```
-
 ## DaemonSet的更新策略
 
 ```
@@ -553,16 +519,3 @@ DaemonSet.spec.updateStrategy.type.RollingUpdate
 
 * 一是目前Kubernetes还不支持查看和管理DaemonSet的更新历 史记录；
 * 二是DaemonSet的回滚（Rollback）并不能如同Deployment一样直接通过kubectl rollback命令来实现，必须通过再次提交旧版本配置的方式实现
-
-## Pod的扩缩容
-
-```bash
-kubectl scale deployment nginx-deployment --replicas 3
-```
-
-## Pod自动扩缩容
-
-```bash
-kubectl autoscale deployment nginx-deployment --cpu-percent=50 --min=1 --max=10
-```
-
