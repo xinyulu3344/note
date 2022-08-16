@@ -14,15 +14,16 @@ metadata:
 spec:
   progressDeadlineSeconds: 600
   replicas: 3 # 副本数
-  revisionHistoryLimit: 10 # 历史记录保留的个数
+  revisionHistoryLimit: 10 # 保留RS旧的revision的个数
+  minReadySeconds: 0 # 可选。指定新创建的Pod在没有任何容器崩溃的情况下视为Ready最小的秒数，默认为0，即一旦被创建就视为可用。
   selector:
     matchLabels:
       app: nginx
   strategy:
     rollingUpdate:
-      maxSurge: 25% # 在更新过程中不可用状态的Pod数量的上限。可以是绝对值(如5)，可以是百分比如(25%)
+      maxSurge: 25% # 可以超过期望Pod数的最大值。默认为25%
       maxUnavailable: 25% # 在更新过程中不可用状态的Pod数量的上限。可以是绝对值(如5)，可以是百分比如(25%)
-    # Recreate
+    # Recreate: 重建，先删除旧的Pod，再创建新的Pod
     # RollingUpdate
     type: RollingUpdate
   template:
