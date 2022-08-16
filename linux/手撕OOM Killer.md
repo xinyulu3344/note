@@ -276,7 +276,7 @@ enum oom_scan_t oom_scan_process_thread(struct task_struct *task,
 }
 ```
 
-oom_badness函数
+oom_badness函数，计算得分
 
 ```c
 /**
@@ -499,7 +499,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 }
 ```
 
-dump_header和dump_tasks函数
+dump_header和dump_tasks函数，打印进程内存状态等日志
 
 ```c
 static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
