@@ -7,8 +7,8 @@
 | vm.panic_on_oom             | 0      | oom的时候是否强制panic                                       | 0表示遇到OOM的时候，不panic，而是启动OOM Killer；<br />1表示在有cpuset、memory policy、memcg约束情况下的OOM，不panic，而是启动OOM Killer；<br />2表示OOM的时候强制系统panic； |
 | vm.oom_kill_allocating_task | 0      | 决定触发OOM时优先kill哪种进程                                | 0表示OOM的时候kill内存占用最大的那个；<br />1表示kill当前申请内存时触发OOM的进程 |
 | vm.oom_dump_tasks           | 1      | 用来记录OOM时记录哪些日志。包括进程使用的虚拟内存总量、物理内存、进程的页表信息等 | 0表示关闭日志打印<br />非0有三种情况打印进程内存使用情况<br />1. 由OOM导致的kernel panic<br />2. 没有找到符合条件的进程kill<br />3. 找到符合条件的进程并kill |
-| /proc/PID/oom_score         |        | 用来控制进程打分，由内核通过内存消耗计算得出                 |                                                              |
-| /proc/PID/oom_score_adj     | 0      | 用来控制进程打分，由用户自定义，取值范围[-1000,1000]，-1000表示禁止OOM Kill杀死该进程 | [-1000,1000]                                                 |
+| /proc/PID/oom_score         |        | 用来控制进程打分，由内核通过内存消耗计算得出，分数越高，越容易被选中kill |                                                              |
+| /proc/PID/oom_score_adj     | 0      | 用来控制进程打分，由用户自定义，取值范围[-1000,1000]，-1000表示禁止OOM Kill杀死该进程。分数越高，越容易被选中kill | [-1000,1000]                                                 |
 | /proc/PID/oom_adj           | 0      | 功能同oom_score_adj。内核中已经废弃该参数。系统中对oom_score_adj或oom_adj中任一个进行设置，内核都会进行两者之间的相互转换。 | [-17,15]                                                     |
 
 ## 统计系统内oom_score分数最高的进程
