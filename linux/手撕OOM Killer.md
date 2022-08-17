@@ -25,6 +25,10 @@ for proc in $(find /proc -maxdepth 1 -regex '/proc/[0-9]+'); do
 done 2>/dev/null | sort -nr | head -n 10
 ```
 
+## 内核源码流程
+
+![OOM流程.png](images/OOM流程.png)
+
 ## 内核源码分析
 
 内核版本：v3.10-rc7
@@ -70,7 +74,7 @@ void out_of_memory(struct zonelist *zonelist, gfp_t gfp_mask,
      * select it.  The goal is to allow it to allocate so that it may
      * quickly exit and free its memory.
      * 
-     * 如果当前想要分配内存的进程恰好有一个挂起的SKGKILL信号或者正在退出，则自动选中这个进程
+     * 如果当前想要分配内存的进程恰好有一个挂起的SIGKILL信号或者正在退出，则自动选中这个进程
      * 将该进程标记为TIF_MEMDIE，目的是快速退出释放内存
      */
     if (fatal_signal_pending(current) || current->flags & PF_EXITING) {
@@ -81,6 +85,8 @@ void out_of_memory(struct zonelist *zonelist, gfp_t gfp_mask,
      * Check if there were limitations on the allocation (only relevant for
      * NUMA) that may require different handling.
      * 对于NUMA架构的系统，检查是否存在一些约束策略
+     * 对于UMA架构的系统，永远都是返回CONSTRAINT_NONE
+     * 设置totalpages
      */
     constraint = constrained_alloc(zonelist, gfp_mask, nodemask,
                         &totalpages);
@@ -120,7 +126,7 @@ void out_of_memory(struct zonelist *zonelist, gfp_t gfp_mask,
     }
     
     // 判断上一次oom killer选择kill的进程是否还在结束中，或者有一些进程正在结束，如果是，退出本次oom处理
-    // 调用oom_kill_process函数来kill进程
+    // 否则调用oom_kill_process函数来kill进程
     if (PTR_ERR(p) != -1UL) {
         oom_kill_process(p, gfp_mask, order, points, totalpages, NULL,
                  nodemask, "Out of memory");
@@ -200,7 +206,7 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
             /* fall through */
         case OOM_SCAN_CONTINUE:
             continue;
-        case OOM_SCAN_ABORT:
+        case OOM_SCAN_ABORT: // 进程处于结束阶段或者正在被oom kill
             rcu_read_unlock();
             return ERR_PTR(-1UL);
         case OOM_SCAN_OK:
