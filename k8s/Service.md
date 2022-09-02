@@ -11,7 +11,7 @@ metadata:
   annotations:
     - name: string
 spec:
-  selector:
+  selector: 
     key: value
   # ClusterIP: 虚拟出来的地址,用于Kubernetes集群内部的Pod访问
   #            在Node上kube-proxy通过设置iptable规则进行转发

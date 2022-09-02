@@ -27,10 +27,12 @@
 
   ```yaml
   ```
+  
+  
 
-```bash
-kubectl create -f cm-appvars.yaml 
-```
+  ```bash
+  kubectl create -f cm-appvars.yaml 
+  ```
 
 
 
