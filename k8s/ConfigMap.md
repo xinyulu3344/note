@@ -140,5 +140,42 @@ spec:
 * ConfigMap中的配额管理还未能实现。 
 * kubelet只支持可以被API Server管理的Pod使用ConfigMap。 
 * kubelet在本Node上通过 --manifest-url或--config自动创建的静态Pod将无 法引用ConfigMap。
-* 挂载目录下的其它文件会被ConfigMap覆盖。
+* 挂载目录下的其它文件会被ConfigMap覆盖。可以通过subPath解决
+
+## 使用subPath解决挂载目录被覆盖
+
+以subPath形式挂载的话，那么Pod无法感知到ConfigMap和Secret的更新。
+
+如果Pod的变量来自于ConfigMap和Secret中定义的内容，那么ConfigMap和Secret更新后，Pod中的变量不会同步被更新
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-appvars
+  namespace: default
+data:
+  nginx.conf: hello
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cm-test-app
+spec:
+  containers:
+  - name: cm-test-app
+    image: nginx:1.15.3
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: myconfig           # 引用Volume的名称
+      mountPath: /etc/nginx/nginx.conf # 只是覆盖/etc/nginx/nginx.conf文件，其它文件不会被覆盖
+      subPath: nginx.conf
+    command: ['sh', '-c', 'sleep 3600']
+  volumes:
+  - name: myconfig
+    configMap:
+      name: cm-appvars  # ConfigMap名称
+```
 

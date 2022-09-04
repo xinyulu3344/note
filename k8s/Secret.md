@@ -42,6 +42,18 @@ kubectl delete secret db-user-pass
 kubectl edit secret db-user-pass
 ```
 
+### 私有镜像仓库
+
+```bash
+kubectl create secret docker-registry secret-tiger-docker \
+  --docker-email=tiger@acme.example \
+  --docker-username=tiger \
+  --docker-password=pass1234 \
+  --docker-server=my-registry.example:5000
+```
+
+
+
 ### 配置文件管理Secret
 
 直接创建
@@ -116,12 +128,126 @@ spec:
     secret:
       secretName: mysecret
       optional: false # 默认设置，意味着 "mysecret" 必须已经存在
+      defaultMode: 0400 # 设置secret文件访问权限
 ```
 
 如果想让Secret中指定的key映射到特定的目录，可以通过spec.volumes.secret.items来配置。示例如下
 
 ```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  # value需要填写base64编码之后的字符串
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    args:
+    - /bin/sh
+    - -c
+    - sleep 3600
+    volumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true
+  volumes:
+  - name: foo
+    secret:
+      secretName: mysecret
+      items: # 因为只显示指定了username这个key，所以只有username会被映射，password不会被映射
+      - key: username # 该键会映射到/etc/foo/username/myusername，而不是/etc/foo/username
+        path: username/myusername
+        mode: 0400 # 设置单个key映射文件的访问权限
 ```
 
+### 以环境变量的形式使用Secret
 
+使用Pod的env字段
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  # value需要填写base64编码之后的字符串
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    args:
+    - /bin/sh
+    - -c
+    - sleep 3600
+    env:
+      - name: SECRET_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: username
+            optional: false
+      - name: SECRET_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: password
+            optional: false
+```
+
+使用Pod的envFrom字段
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  # value需要填写base64编码之后的字符串
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    args:
+    - /bin/sh
+    - -c
+    - sleep 3600
+    envFrom:
+    - secretRef: # 将指定的secret中的key-value，转换为pod中的环境变量
+        name: mysecret
+        optional: false
+```
 
