@@ -1,9 +1,9 @@
 ## 创建ConfigMap
 
-拿到Grafana的配置文件`defaults.ini`，然后使用kubectl命令创建ConfigMap
+拿到Grafana的配置文件`grafana.ini`，然后使用kubectl命令创建ConfigMap
 
 ```bash
-kubectl create cm grafana-config --from-file=defaults.ini
+kubectl create cm grafana-config --from-file=grafana.ini
 ```
 
 
@@ -94,9 +94,9 @@ spec:
         volumeMounts:
         - mountPath: "/var/lib/grafana"
           name: storage
-        - mountPath: "/usr/share/grafana/conf/defaults.ini"
+        - mountPath: "/etc/grafana/grafana.ini"
           name: config
-          subPath: defaults.ini
+          subPath: grafana.ini
 
 ---
 
@@ -132,7 +132,7 @@ spec:
         backend:
           service:
             name: svc-grafana
-            port:
+            port: 
               number: 3000
   ingressClassName: nginx
 ```
