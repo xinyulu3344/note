@@ -57,4 +57,3 @@ kibana-setup --enrollment-token TOKEN
 docker restart elasticsearch
 docker restart kibana
 ```
-
