@@ -54,7 +54,7 @@ root         4     2  0 08:14 ?        00:00:00 [rcu_par_gp]
 
 ## 案例准备
 
-今天的案例还是基于 Ubuntu 18.04，同样适用于其他的 Linux 系统。我使用的案例环境如下所示：
+案例基于 Ubuntu 18.04，同样适用于其他的 Linux 系统。我使用的案例环境如下所示：
 
 - 机器配置：2 CPU，8GB 内存。
 - 预先安装 docker、perf、hping3、curl 等工具，如 `apt install docker.io linux-tools-common hping3`。
