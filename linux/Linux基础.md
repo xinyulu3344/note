@@ -584,3 +584,199 @@ tmux list-keys
 \xHH插入HH(十六进制)所代表的ASCII数字
 ```
 
+## 引号、反引号
+
+- 单引号：变量和命令都不识别，就是普通字符串原样输出
+- 双引号：不能识别命令，但能识别变量
+- 反引号：变量和命令都识别，并且会将反引号的内容当成命令进行执行后，再交给调用反引号的命令继续执行
+
+示例：
+
+```bash
+]# echo "$HOSTNAME"
+CentOS74
+
+]# echo '$HOSTNAME'
+$HOSTNAME
+
+]# echo `echo $HOSTNAME`
+CentOS74
+```
+
+## 大括号
+
+```bash
+]# echo user{1,2,3}.txt
+user1.txt user2.txt user3.txt
+
+]# echo user{1..3}.txt
+user1.txt user2.txt user3.txt
+
+]# echo user{3..1}.txt
+user3.txt user2.txt user1.txt
+
+]# echo user{1..3..2}.txt
+user1.txt user3.txt
+
+]# echo {a..z}
+a b c d e f g h i j k l m n o p q r s t u v w x y z
+
+]# echo {z..a}
+z y x w v u t s r q p o n m l k j i h g f e d c b a
+
+]# echo {a..z..2}
+a c e g i k m o q s u w y
+
+]# echo {00..20..2}
+00 02 04 06 08 10 12 14 16 18 20
+```
+
+## 历史命令
+
+历史命令保存在`~/.bash_history`文件中
+
+```bash
+history命令
+```
+
+查看可以保存多少历史命令
+
+```bash
+]# echo $HISTSIZE
+1000
+```
+
+修改可以保存的历史命令数量
+
+```bash
+]# vim /etc/profile
+...
+HISTSIZE=1000
+...
+```
+
+常用选项
+
+| 选项      | 解释                                                         |
+| --------- | ------------------------------------------------------------ |
+| -c        | 清空命令历史。不会清空文件中历史，只清空内存中历史           |
+| -d offset | 删除历史中指定的第offset个命令                               |
+| n         | 显示最近的n条历史                                            |
+| -a        | 追加本次会话新执行的命令历史列表至历史文件                   |
+| -r        | 读历史文件附加到历史列表                                     |
+| -w        | 保存历史列表到指定的历史文件                                 |
+| -n        | 读历史文件中未读过的行至历史列表                             |
+| -p        | 展开历史参数成多行，但不存在历史列表中                       |
+| -s        | 展开历史参数成一行，附加在历史列表后，相当于命令不真正执行。假冒历史 |
+
+历史命令相关环境变量
+
+| 环境变量       | 解释                       | 默认值          | 可选值                                                       |
+| -------------- | -------------------------- | --------------- | ------------------------------------------------------------ |
+| HISTSIZE       | 命令历史记录的条数         | 1000            |                                                              |
+| HISTFILE       | 指定历史文件               | ~/.bash_history |                                                              |
+| HISTFILESIZE   | 命令历史文件记录历史的条数 | 1000            |                                                              |
+| HISTTIMEFORMAT | 历史命令格式               |                 | "%F %T $(whoami) "                                           |
+| HISTIGNORE     | 忽略命令，支持通配符       |                 | "str1:str2*"                                                 |
+| HISTCONTROL    | 控制命令历史记录的方式     | ignoredups      | ignoredups 忽略重复的命令，连续且相同为重复<br />ignorespace 忽略所有以空白开头命令<br />ignoreboth 相当于ignoredups, ignorespace的组合<br />erasedups 删除重复命令 |
+
+给历史命令设置时间格式
+
+```bash
+export HISTTIMEFORMAT="%F %T "
+```
+
+永久设置
+
+``` bash
+vim ~/.bashrc
+```
+
+## bash快捷键
+
+```bash
+ctrl + l 清屏
+Ctrl + o 执行当前命令，并重新显示本命令
+Ctrl + s 阻止屏幕输出，实际已经执行，只是屏幕不显示。类似锁定效果
+Ctrl + q 解锁
+Ctrl + c 终止命令
+Ctrl + z 挂起
+Ctrl + a 光标移动到行首，相当于Home键
+Ctrl + e 光标移动到行尾，相当于end键
+Ctrl + f 光标右移一个字符
+Ctrl + b 光标左移一个字符
+Alt + f 光标右移一个单词尾
+Alt + b 光标左移一个单词首
+Ctrl + xx 光标在命令行首和光标之间移动
+Ctrl + u 从光标处删除至命令行首
+Ctrl + k 从光标处删除至命令行尾
+Alt + r 删除当前整行
+Ctrl + w 从光标处向左删除一个单词
+Alt + d 从光标处向右删除一个单词
+Ctrl + d 删除光标处的一个字符
+Ctrl + h 删除光标前一个字符
+Ctrl + y 将删除的字符粘贴到光标后
+```
+
+## 文件编码转换
+
+```bash
+dos2unix
+unix2dos
+```
+
+查看有哪些编码方式
+
+```bash
+]# iconv -l
+```
+
+将文件从gb2312编码转为utf8编码
+
+```bash
+]# iconv -f gb2312 -t utf8 test.txt -o xxx.txt
+```
+
+## 通配符
+
+```bash
+*       匹配0个或多个字符, 但不匹配"."开头的文件
+?       匹配任何单个字符
+[0-9]   匹配数字
+[a-z]   字母(小大小大...)
+[A-Z]   字母(小大小大...)
+[test]  匹配列表中的任何的一个字符
+[^test] 匹配列表中的所有字符以外的字符
+```
+
+```bash
+[:digit:]   任意数字
+[:lower:]   任意小写字母
+[:upper:]   任意大写字母
+[:alpha:]   任意大小写字母
+[:alnum:]   任意数字或字母
+[:blank:]   水平空白字符
+[:space:]   水平或垂直空白字符
+[:punct:]   标点符号
+[:print:]   可打印字符
+[:cntrl:]   控制(非打印)字符
+[:graph:]   图形字符
+[:xdigit:]  十六进制字符
+```
+
+## 复制
+
+cp命令
+
+```bash
+cp -r -p
+cp -a
+cp -r -p -d
+```
+
+
+
+
+
+
+
