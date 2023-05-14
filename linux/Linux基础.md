@@ -774,9 +774,451 @@ cp -a
 cp -r -p -d
 ```
 
+## 文件名长度
 
+文件名最长255个字节
 
+包括路径在内文件名最长4095字节
 
+## 硬链接和软链接
 
+### 硬链接
 
+硬链接本质上就给一个文件起一个新的名称，实质是同一个文件
 
+硬链接特性：
+
+- 创建硬链接会在对应目录中增加额外的记录项来引用文件
+- 对应于同一文件系统上一个物理文件
+- 每个目录引用相同的inode号
+- 创建时链接数递增
+- 删除文件时，链接计数递减，减到0时，文件才被删除
+- 不能跨分区
+- 不支持对目录创建硬链接
+
+创建命令
+
+```bash
+ln source_file target_file
+```
+
+### 软链接
+
+```bash
+ln -s source_file target_file
+```
+
+> source_file的相对路径是target_file的相对路径，不是当前工作目录的相对路径
+
+### 硬链接和软链接区别
+
+|            | 硬链接                               | 软链接                                     |
+| ---------- | ------------------------------------ | ------------------------------------------ |
+| 本质       | 同一个文件                           | 不同文件                                   |
+| 跨设备     | 不支持                               | 支持                                       |
+| inode      | 相同                                 | 不同                                       |
+| 链接数     | 创建新的，链接数增加；删除链接减少   | 创建删除都无变化                           |
+| 目录       | 不支持                               | 支持                                       |
+| 相对路径   | 原始文件相对路径是相对于当前工作目录 | 原始文件相对路径是相对于链接文件的相对路径 |
+| 删除源文件 | 只是链接数减一，链接文件访问无影响   | 链接文件无法访问                           |
+| 文件类型   | 和源文件相同                         | 链接文件，和源文件无关                     |
+
+## 重定向
+
+Linux给程序提供三种IO设备
+
+- 标准输入，文件描述符0，默认接收来自终端的输入
+- 标准输出，文件描述符1，默认输出到终端窗口
+- 标准错误，文件描述符2，默认输出到终端窗口
+
+```bash
+1> 或 >
+>|
+2>
+&>
+>>
+2>>
+```
+
+### tee命令
+
+重定向到多个目标
+
+```bash
+-a, --append 追加
+```
+
+示例：
+
+```bash
+echo "Hello" | tee -a /data/test.log 
+```
+
+## 管道
+
+设置密码
+
+```bash
+echo PASSWD | passwd --stdin root &> /dev/null
+```
+
+## 用户、组和权限
+
+### 用户和组的关系
+
+- 用户的主要组：用户必须属于一个且只有一个主组
+- 用户的附加组：一个用户可以属于零个或多个附加组
+
+### 主要配置文件
+
+- /etc/passwd
+- /etc/shadow
+- /etc/group
+- /etc/gshadow
+
+#### /etc/passwd
+
+```bash
+# 1. 用户名
+# 2. 密码，迁到了/etc/shadow
+# 3. 用户ID
+# 4. 用户组ID
+# 5. 用户主组ID
+# 6. 用户描述信息
+# 7. 家目录
+# 8. shell
+xinyulu:x:1000:1000:xinyulu:/home/xinyulu:/bin/bash
+```
+
+#### /etc/shadow
+
+```bash
+# 1. 用户名
+# 2. 加密后的密码
+# 3. 密码最后修改的时间
+# 4. 从密码最后修改时间开始，几天内不允许改密码，root不受限制
+# 5. 从密码最后修改时间开始，几天后密码过期
+# 6. 密码过期前多少天提示你
+# 7. 密码过期后的宽限期
+# 8. 账号有效期
+xinyulu:$6$K3mIlKK$ZgX/mZcWrbPjTdN/2uFGcrS0ffrYRgSGfmUdXlYrmY3/DRUJnwUdfPjbf2s7e7Zcp7zz6ZSzQpKAX0tTQVKiN1:18973:0:99999:7:::
+```
+
+#### /etc/group
+
+```bash
+# 1. 组名
+# 2. 组密码，迁到/etc/gshadow
+# 3. 组ID
+# 4. 组成员列表，该组是该成员的附加组
+xinyulu:x:1000:
+```
+
+#### /etc/gshadow
+
+```bash
+# 1. 组名
+# 2. 组密码，!表示没有密码
+# 3. 组管理员
+# 4. 组成员列表，该组是该成员的附加组
+xinyulu:!::
+```
+
+### 用户和组管理命令
+
+- useradd
+- usermod
+- userdel
+- groupadd
+- groupmod
+- groupdel
+
+#### useradd
+
+常见选项：
+
+```bash
+-u, --uid UID                 UID
+-o, --non-unique              配合-u，不检查UID唯一性
+-g, --gid GROUP               指定用户基本组，可以为组名，也可以为GID
+-c, --comment COMMENT         用户注释信息
+-d, --home-dir HOME_DIR       指定家目录
+-s, --shell SHELL             指明用户的默认shell程序，可用列表在/etc/shells文件中
+-G, --groups GROUPS           为用户指定附加组，组要存在
+-N, --no-user-group           不创建私用组做主组，使用users组做主组
+-r, --system                  创建系统用户
+-m, --create-home             创建家目录
+-M, --no-create-home          不创建家目录
+-e, --expiredate EXPIRE_DATE  用户的过期日期
+-f, --inactive INACTIVE       密码过期后的宽限期
+-k, --skel SKEL_DIR           新建账号的模板目录
+```
+
+范例：
+
+```bash
+useradd -r -u 48 -g apache -s /sbin/nologin -d /var/www -c "Apache" apache
+```
+
+useradd的默认值设定由`/etc/default/useradd`定义
+
+```bash
+]# cat /etc/default/useradd 
+# useradd defaults file
+GROUP=100
+HOME=/home
+INACTIVE=-1
+EXPIRE=
+SHELL=/bin/bash
+SKEL=/etc/skel
+CREATE_MAIL_SPOOL=yes
+```
+
+新建用户的相关文件
+
+- /etc/default/useradd
+- /etc/skel/*
+- /etc/login.defs
+
+批量改密码
+
+```bash
+echo root:PASSWD | chpasswd
+cat /tmp/users.txt | chpasswd
+echo PASSWD | passwd --stdin root
+```
+
+#### usermod
+
+```bash
+Usage: usermod [options] LOGIN
+```
+
+常见选项：
+
+```bash
+-u, --uid UID                 新UID
+-g, --gid GROUP               新主组
+-G, --groups GROUPS           新附加组，原附加组会被覆盖；若要保留需要加-a选项
+-a, --append
+-s, --shell SHELL             新的默认shell
+-c, --comment COMMENT         新的注释信息
+-d, --home HOME_DIR           新家目录不会自动创建：若要创建新家目录并移动数据，需要同时使用-m选项
+-m, --move-home
+-l, --login NEW_LOGIN         新的用户名
+-L, --lock
+-U, --unlock
+-e, --expiredate EXPIRE_DATE  用户的过期日期
+-f, --inactive INACTIVE       密码过期后的宽限期
+```
+
+#### userdel
+
+```bash
+Usage: userdel [options] LOGIN
+```
+
+选项：
+
+```bash
+-f, --force
+-r, --remove  remove home directory and mail spool
+```
+
+#### groupadd
+
+```bash
+Usage: groupadd [options] GROUP
+```
+
+常用选项：
+
+```bash
+-g, --gid GID  指明GID号
+-r, --system   创建系统组
+```
+
+#### groupmod
+
+```bash
+Usage: groupmod [options] GROUP
+```
+
+常用选项：
+
+```bash
+-g, --gid GID                 change the group ID to GID
+-n, --new-name NEW_GROUP      change the name to NEW_GROUP
+-o, --non-unique              allow to use a duplicate (non-unique) GID
+-p, --password PASSWORD       change the password to this (encrypted) PASSWORD
+-R, --root CHROOT_DIR         directory to chroot into
+```
+
+#### groupdel
+
+```bash
+Usage: groupdel [options] GROUP
+```
+
+### 文件权限
+
+#### 对文件的权限
+
+```bash
+r  可以获取文件内容
+w  可修改其内容
+x  可执行
+```
+
+#### 对目录的权限
+
+```bash
+r  可以使用ls查看此目录中文件列表
+w  可在此目录中创建文件，也可删除此目录中的文件
+x  可以使用ls -l查看此目录中文件元数据(需配合r权限)，可以cd进入此目录
+X  
+```
+
+### chown
+
+修改文件属主、属组
+
+```bash
+Usage: chown [OPTION]... [OWNER][:[GROUP]] FILE...
+  or:  chown [OPTION]... --reference=RFILE FILE...
+```
+
+### chgrp
+
+修改文件属组
+
+```bash
+Usage: chgrp [OPTION]... GROUP FILE...
+  or:  chgrp [OPTION]... --reference=RFILE FILE...
+```
+
+### chmod
+
+```bash
+Usage: chmod [OPTION]... MODE[,MODE]... FILE...
+  or:  chmod [OPTION]... OCTAL-MODE FILE...
+  or:  chmod [OPTION]... --reference=RFILE FILE...
+```
+
+### setfacl
+
+```bash
+setfacl 2.2.51 -- set file access control lists
+Usage: setfacl [-bkndRLP] { -m|-M|-x|-X ... } file ...
+  -m, --modify=acl        modify the current ACL(s) of file(s)
+  -M, --modify-file=file  read ACL entries to modify from file
+  -x, --remove=acl        remove entries from the ACL(s) of file(s)
+  -X, --remove-file=file  read ACL entries to remove from file
+  -b, --remove-all        remove all extended ACL entries
+  -k, --remove-default    remove the default ACL
+      --set=acl           set the ACL of file(s), replacing the current ACL
+      --set-file=file     read ACL entries to set from file
+      --mask              do recalculate the effective rights mask
+  -n, --no-mask           don't recalculate the effective rights mask
+  -d, --default           operations apply to the default ACL
+  -R, --recursive         recurse into subdirectories
+  -L, --logical           logical walk, follow symbolic links
+  -P, --physical          physical walk, do not follow symbolic links
+      --restore=file      restore ACLs (inverse of `getfacl -R')
+      --test              test mode (ACLs are not modified)
+  -v, --version           print version and exit
+  -h, --help              this help text
+```
+
+示例：
+
+```bash
+setfacl -m u:xinyulu:- f1.txt
+setfacl -m g:admins:rw f1.txt
+setfacl -x u:xinyulu f1.txt
+setfacl -b f1.txt
+```
+
+### getfacl
+
+```bash
+getfacl 2.2.51 -- get file access control lists
+Usage: getfacl [-aceEsRLPtpndvh] file ...
+  -a,  --access           display the file access control list only
+  -d, --default           display the default access control list only
+  -c, --omit-header       do not display the comment header
+  -e, --all-effective     print all effective rights
+  -E, --no-effective      print no effective rights
+  -s, --skip-base         skip files that only have the base entries
+  -R, --recursive         recurse into subdirectories
+  -L, --logical           logical walk, follow symbolic links
+  -P, --physical          physical walk, do not follow symbolic links
+  -t, --tabular           use tabular output format
+  -n, --numeric           print numeric user/group identifiers
+  -p, --absolute-names    don't strip leading '/' in pathnames
+  -v, --version           print version and exit
+  -h, --help              this help text
+```
+
+## 文本处理工具
+
+### cat
+
+### tac
+
+### rev
+
+### hexdump
+
+```bash
+hexdump -C -n 512 /dev/vdb
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+000001b0  00 00 00 00 00 00 00 00  94 09 fe 46 00 00 00 00  |...........F....|
+000001c0  21 02 83 0c 2c b2 00 08  00 00 00 f8 7f 0c 00 00  |!...,...........|
+000001d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+000001f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 55 aa  |..............U.|
+00000200
+```
+
+```bash
+echo -n {a..z} | tr -d ' ' | hexdump -C
+00000000  61 62 63 64 65 66 67 68  69 6a 6b 6c 6d 6e 6f 70  |abcdefghijklmnop|
+00000010  71 72 73 74 75 76 77 78  79 7a                    |qrstuvwxyz|
+0000001a
+```
+
+### od
+
+dump files in octal and other formats
+
+```bash
+echo {a..z} | tr -d ' ' | od -t x1z
+0000000 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e 6f 70  >abcdefghijklmnop<
+0000020 71 72 73 74 75 76 77 78 79 7a 0a                 >qrstuvwxyz.<
+0000033
+```
+
+### xxd
+
+```bash
+echo -n {a..z} | tr -d ' ' | xxd
+00000000: 6162 6364 6566 6768 696a 6b6c 6d6e 6f70  abcdefghijklmnop
+00000010: 7172 7374 7576 7778 797a                 qrstuvwxyz
+```
+
+### less和more
+
+### tail和head
+
+### cut
+
+```bash
+-d, --delimiter=DELIM 指明分隔符
+-f, --fields=LIST  选择打印哪些列
+```
+
+### paste
+
+paste合并多个文件同行号的列到一行
