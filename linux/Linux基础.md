@@ -1170,6 +1170,16 @@ Usage: getfacl [-aceEsRLPtpndvh] file ...
 
 ### hexdump
 
+常用选项:
+
+```bash
+-s offset  从第offset字节开始查看
+-C   十六进制ASCII展示
+-n length  查看length字节
+```
+
+
+
 ```bash
 hexdump -C -n 512 /dev/vdb
 00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
@@ -1222,3 +1232,110 @@ echo -n {a..z} | tr -d ' ' | xxd
 ### paste
 
 paste合并多个文件同行号的列到一行
+
+### diff、patch
+
+比较文本
+
+比较f1.txt和f2.txt的不同并保存到f.patch文件中，用patch命令恢复f2.txt内容恢复到f1.txt中
+
+```bash
+diff -u f1.txt f2.txt > f.patch
+patch -b f1.txt f.patch
+```
+
+### cmd
+
+比较二进制文件的不同
+
+```bash
+]# cmp /bin/dir /bin/ls
+/bin/dir /bin/ls differ: byte 645, line 1
+
+]# hexdump -s 640 -Cn 7 /bin/dir
+00000280  47 4e 55 00 85 20 5f                              |GNU.. _|
+00000287
+
+]# hexdump -s 640 -Cn 7 /bin/ls
+00000280  47 4e 55 00 c5 ad 78                              |GNU...x|
+00000287
+```
+
+### grep
+
+用法
+
+```bash
+Usage: grep [OPTION]... PATTERN [FILE]...
+```
+
+常用选项
+
+```bash
+-E, --extended-regexp  相当于egrep，使用ERE
+-G, --basic-regexp   使用BRE
+-i, --ignore-case    忽略大小写
+-n, --line-number    显示匹配的行号
+-H, --with-filename
+-m, --max-count=NUM   匹配成功NUM次后停止
+-v, --invert-match    显示不被匹配到的行
+-h, --no-filename
+-o, --only-matching  仅显示匹配到的字符串，输出中一行一个
+-r, --recursive  递归目录，但不处理软链接
+-R, --dereference-recursive  递归目录，同时处理软链接
+-D, --devices=ACTION
+--exclude-from=FILE   skip files matching any file pattern from FILE
+--exclude-dir=PATTERN directories that match PATTERN will be skipped.
+-L, --files-without-match print only names of FILEs containing no match
+-l, --files-with-matches  print only names of FILEs containing matches
+-c, --count               统计匹配的行数
+-B, --before-context=NUM  同时输出匹配中的前NUM行
+-A, --after-context=NUM   同时输出匹配中的后NUM行
+-C, --context=NUM         同时输出匹配中的前后各NUM行
+-NUM                      same as --context=NUM
+
+```
+
+
+
+### sed
+
+### awk
+
+## 正则表达式
+
+```bash
+man 7 regex
+```
+
+### 基本正则表达式
+
+#### 字符匹配
+
+```bash
+.          匹配任意单个字符
+[]         配置指定范围内的任意单个字符，如[wang] [a-z] [a-zA-Z]
+[^]        匹配指定范围外的任意单个字符，如[^wang]
+[:alnum:]  字母和数字
+[:alpha:]  代表任何英文大小写字符，即A-Z, a-z
+[:lower:]  小写字母，如[[:lower:]]相当于[a-z]
+[:upper:]  大写字母
+[:blank:]  空白字符(空格和制表符)
+[:space:]  水平和垂直的空白字符
+[:cntrl:]  不可打印的控制字符（退格、删除、警铃...）
+[:digit:]  十进制数字
+[:xdigit:] 十六进制数字
+[:graph:]  可打印的非空白字符
+[:print:]  可打印字符
+[:punct:]  标点符号
+```
+
+
+
+#### 匹配次数
+
+#### 匹配锚定
+
+#### 分组其它
+
+### 扩展正则表达式
