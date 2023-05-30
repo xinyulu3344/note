@@ -1233,6 +1233,33 @@ echo -n {a..z} | tr -d ' ' | xxd
 
 paste合并多个文件同行号的列到一行
 
+### tail
+
+```bash
+-n, --lines=K 输出最后K行，如果想从第K行开始输出，将K换成+K
+```
+
+### sort
+
+用法：
+
+```bash
+Usage: sort [OPTION]... [FILE]...
+  or:  sort [OPTION]... --files0-from=F
+```
+
+常用选项：
+
+```bash
+-n               按数字大小排序
+-r, --reverse    倒序
+-R               随机排序
+-k, --key=KEYDEF 按照字段分隔符分隔的第KEYDEF列排序
+-u, --unique     删除输出中的重复行
+-f, --ignore-case 忽略字符串中字符大小写
+-t, --field-separator=SEP  字段分隔符
+```
+
 ### diff、patch
 
 比较文本
