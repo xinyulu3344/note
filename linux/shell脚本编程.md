@@ -86,22 +86,22 @@ ${name}
 > 注意，当变量值为多行的时候，引用变量是否加双引号有区别。加双引号，多行输出，不加单行输出。如：
 
 ```bash
-]# NUMS=`seq 3`
-]# 
-]# echo "$NUMS"
+[root@CentOS74 ~]# NUMS=`seq 3`
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo "$NUMS"
 1
 2
 3
-]# 
-]# echo $NUMS
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo $NUMS
 1 2 3
 ```
 
 **利用变量实现动态命令**
 
 ```bash
-]# CMD=hostname
-]# $CMD
+[root@CentOS74 ~]# CMD=hostname
+[root@CentOS74 ~]# $CMD
 CentOS74
 ```
 
@@ -144,18 +144,18 @@ ${name}
 > 注意：花括号可以用在多个变量连起来写时，分割的作用
 
 ```bash
-]# NAME=zhangsan
-]# AGE=10
-]# echo $NAME$AGE
+[root@CentOS74 ~]# NAME=zhangsan
+[root@CentOS74 ~]# AGE=10
+[root@CentOS74 ~]# echo $NAME$AGE
 zhangsan10
-]# 
-]# echo $NAME-$AGE
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo $NAME-$AGE
 zhangsan-10
-]# 
-]# echo $NAME_$AGE
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo $NAME_$AGE
 10
-]# 
-]# echo ${NAME}_$AGE
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo ${NAME}_$AGE
 zhangsan_10
 ```
 
@@ -262,9 +262,487 @@ himBH
 **set命令实现脚本安全**
 
 ```bash
--u 
--e
+-u 在扩展一个没有设置的变量时，显示错误信息，等同于set -o nounset
+-e 如果有一个命令退出状态码不是0，则立即中止脚本
 -o
--x
+-x 在执行过程中打印出命令参数。
+```
+
+`-o`选项
+
+```bash
+[root@CentOS74 ~]# set -o
+allexport       off
+braceexpand     on
+emacs           on
+errexit         off
+errtrace        off
+functrace       off
+hashall         on
+histexpand      on
+history         on
+ignoreeof       off
+interactive-comments    on
+keyword         off
+monitor         on
+noclobber       off
+noexec          off
+noglob          off
+nolog           off
+notify          off
+nounset         off
+onecmd          off
+physical        off
+pipefail        off
+posix           off
+privileged      off
+verbose         off
+vi              off
+xtrace          off
+```
+
+## 格式化输出printf
+
+**常用格式替换符**
+
+| 替换符 | 功能                                                         |
+| ------ | ------------------------------------------------------------ |
+| %s     | 字符串                                                       |
+| %f     | 浮点格式                                                     |
+| %b     | 相对应的参数中包含转义字符时，可以使用此替换符进行替换，对应的转义字符会被转义 |
+| %c     | ASCII字符，即显示对应参数的第一个字符                        |
+| %d,%i  | 十进制整数                                                   |
+| %o     | 八进制值                                                     |
+| %u     | 无符号十进制值                                               |
+| %x     | 十六进制值(a-f)                                              |
+| %X     | 十六进制值(A-F)                                              |
+| %%     | 表示%本身                                                    |
+
+**常用转义字符**
+
+| 转义符 | 功能                           |
+| ------ | ------------------------------ |
+| \a     | 警告字符，通常为ASCII的BEL字符 |
+| \b     | 后退                           |
+| \f     | 换页                           |
+| \n     | 换行                           |
+| \r     | 回车                           |
+| \t     | 水平制表符                     |
+| \v     | 垂直制表符                     |
+| \      | 表示\本身                      |
+
+## 算数运算
+
+shell支持算术运算，但只支持整数，不支持小数
+
+```bash
++ - * / % **
+```
+
+实现算术运算：
+
+```bash
+let var=算术表达式
+var=$[算术表达式]
+var=$((算术表达式))
+var=$(expr arg1 arg2 arg3 ...)
+declare -i var=数值
+echo '算术表达式' | bc
+```
+
+内建的随机数生成器变量：
+
+```bash
+$RANDOM 取值范围：0-32767
+```
+
+增强型赋值：
+
+```bash
+i+=10
+i-=10
+*=
+/=
+%=
+i++
+++i
+i--
+--i
+```
+
+## 逻辑运算
+
+| 运算符       | 说明                               |
+| ------------ | ---------------------------------- |
+| <<、>>       | 左移右移                           |
+| &、\|、^、~  | 按位与、按位或、按位异或、按位取反 |
+| ==、!=       | 相等、不等                         |
+| <、<=、>、>= | 小于、小于等于、大于、大于等于     |
+| &&、\|\|、!  | 逻辑与、逻辑或、逻辑非(取反)       |
+
+## 条件测试命令
+
+条件测试：判断某需求是否满足，需要由测试机制来实现，专用的测试表达式需要由测试命令辅助完成测试过程。
+
+若真，则状态码变量`$?`返回0
+
+若假，则状态码变量`$?`返回1
+
+**条件测试命令**
+
+```bash
+test EXPRESSION <==> [ EXPRESSION ]
+[[ EXPRESSION ]]
+```
+
+> 注意：EXPRESSION前后必须有空白字符
+
+### 变量测试
+
+```bash
+-v VAR 判断变量是否存在
+```
+
+### 数值测试
+
+```bash
+arg1 OP arg2   Arithmetic tests.  OP is one of -eq, -ne, -lt, -le, -gt, or -ge
+```
+
+示例：
+
+```bash
+[root@CentOS74 ~]# i=10
+[root@CentOS74 ~]# j=8
+[root@CentOS74 ~]# [ $i -gt $j ]
+[root@CentOS74 ~]# echo $?
+0
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# [ $i -lt $j ]
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo $?
+1
+```
+
+
+
+### 字符串测试
+
+```bash
+test和[ ] 用法
+-n "STRING"          字符串是否不空，不空为真，没定义或空为假
+-z "STRING"          字符串是否为空，没定义或空为真，不空为假
+STRING1 = STRING2    字符串相等为真，不等为假
+STRING1 != STRING2   字符串不等为真，相等为假
+STRING1 < STRING2    ASCII码是否大于
+STRING1 > STRING2    ASCII码是否小于
+
+[[ ]] 用法
+STRING1 == PATTERN   STRING1是否和PATTERN通配符匹配。注意：此表达式用于[[ ]]中
+STRING1 =~ PATTERN   STRING1是否被PATTERN扩展正则匹配。注意：此表达式用于[[ ]]中
+```
+
+通配符示例：
+
+```bash
+[root@CentOS74 ~]# FILE=test.log
+[root@CentOS74 ~]# [[ "$FILE" == *.log ]]
+[root@CentOS74 ~]# echo $?
+0
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# [[ "$FILE" == *.txt ]]
+[root@CentOS74 ~]# echo $?
+1
+```
+
+正则示例：
+
+```bash
+[root@CentOS74 ~]# FILE=test.log
+[root@CentOS74 ~]# [[ "$FILE" =~ \.txt$ ]]
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# echo $?
+1
+[root@CentOS74 ~]# 
+[root@CentOS74 ~]# [[ "$FILE" =~ \.log$ ]]
+[root@CentOS74 ~]# echo $?
+0
+```
+
+注意：`[[ == ]]` 这种写法，`==`右侧的`*`想做通配符，就不要加""，只想做一个普通`*`字符，需要加""或转义。示例如下：
+
+```bash 
+[root@CentOS74 ~]# NAME="linux1"
+[root@CentOS74 ~]# [[ "$NAME" == linux* ]]
+[root@CentOS74 ~]# echo $?
+0
+[root@CentOS74 ~]# [[ "$NAME" == "linux*" ]]
+[root@CentOS74 ~]# echo $?
+1
+[root@CentOS74 ~]# NAME="linux*"
+[root@CentOS74 ~]# [[ "$NAME" == "linux*" ]]
+[root@CentOS74 ~]# echo $?
+0
+```
+
+### 文件测试
+
+**存在性测试**
+
+```bash
+-a FILE        判断文件是否存在，建议用-e
+-e FILE        判断文件是否存在
+-b FILE        判断是否存在且是一个块文件
+-c FILE        判断是否存在且是一个字符文件
+-d FILE        判断是否存在且是一个目录
+-f FILE        判断是否存在且是普通文件
+-h FILE        判断是否存在且文件是一个软链接
+-L FILE        判断是否存在且文件是一个软链接
+-p FILE        判断是否存在且是一个管道文件
+-S FILE        判断是否存在且文件是一个套接字
+```
+
+注意：如果是判断软链接，会去判断它指向的文件
+
+**文件权限测试**
+
+```bash
+-r FILE        判断是否存在且对执行测试用户可读
+-w FILE        判断是否存在且对执行测试用户可写
+-x FILE        判断是否存在且对执行测试用户可执行
+-u FILE        判断是否存在且拥有suid权限
+-g FILE        判断是否存在且拥有sgid权限
+-k FILE        判断是否存在且设置了粘滞位(sticky bit)
+```
+
+> 注意：这里的是否可读可写，是指最终的权限。比如root用户的权限，acl、特殊权限等，都会影响最终是否可读可写
+
+**文件属性测试**
+
+```bash
+-s FILE        判断是否存在且非空
+-t FD          判断文件描述符是否在某终端已经打开
+-N FILE        文件自从上一次被读取之后是否被修改过
+-O FILE        当前有效用户是否为文件属主
+-G FILE        当前有效用户是否为文件属组
+FILE1 -ef FILE2 FILE1是否为FILE2的硬链接
+FILE1 -nt FILE2 FILE1是否比FILE2新(mtime)
+FILE1 -ot FILE2 FILE1是否比FILE2旧(mtime)
+```
+
+## 关于()和{}
+
+**man bash的官方描述**
+
+> (list)
+> list  is  executed in a subshell environment (see COMMAND EXECUTION ENVIRONMENT below).  Variable assignments and builtin commands that affect the shell's environment  do  not  remain  in  effect after the command completes.  The return status is the exit status of list.
+> { list; }
+> list is simply executed in the current shell environment.  list must be terminated with a newline or semicolon.  This is known as a group command.  The return status is the exit status  of  list. Note  that  unlike  the metacharacters ( and ), { and } are reserved words and must occur where a reserved word is permitted to be recognized.  Since they do not cause a word break, they must be separated from list by whitespace or another shell metacharacter.
+
+(list) 会开启子shell，并且list中的变量赋值以及内部命令执行后，将不再影响后续的环境
+
+{ list; } 不会开启子shell，在当前shell中运行，会影响当前shell环境。
+
+示例：
+
+```bash
+[root@CentOS74 ~]# name=zhangsan;(echo $name; name=lisi; echo $name); echo $name
+zhangsan
+lisi
+zhangsan
+[root@CentOS74 ~]# name=zhangsan;{ echo $name; name=lisi; echo $name; }; echo $name;
+zhangsan
+lisi
+lisi
+[root@CentOS74 ~]# 
+```
+
+> 注意：{ list; }，{右边有空格，命令最后有;
+
+## 组合条件测试
+
+**并且：**EXPRESSION1和EXPRESSION2都为真，结果才是真
+
+```bash
+[ EXPRESSION1 -a EXPRESSION2 ]
+```
+
+**或者：**EXPRESSION1和EXPRESSION2有一个为真，结果就是真
+
+```bash
+[ EXPRESSION1 -o EXPRESSION2 ]
+```
+
+**取反：**
+
+```bash
+[ ! EXPRESSION ]
+! [ EXPRESSION ]
+```
+
+> 注意：-a和-o需要使用测试命令进行，[[ ]]不支持
+
+**&&：**
+
+```bash
+[ EXPRESSION1 ] && [ EXPRESSION2]
+```
+
+**||：**
+
+```bash
+[ EXPRESSION1 ] || [ EXPRESSION2 ]
+```
+
+## read接受输入
+
+使用read来把输入值分配给一个或多个shell变量，read从标准输入中读取值，给每个单词分配一个变量，所有剩余单词都被分配给最后一个变量
+
+格式：
+
+```bash
+read [options] [name ...]
+```
+
+常用选项：
+
+```bash
+-p ""      指定要显示的提示
+-s         静默输入，一般用于密码
+-n N       指定输入的字符长度N
+-d '字符'   输入结束符
+-t N       TIMEOUT为N秒
+```
+
+示例：
+
+```bash
+[root@CentOS74 ~]# read 
+zhangsan
+[root@CentOS74 ~]# echo $REPLY
+zhangsan
+[root@CentOS74 ~]# read NAME
+zhangsan
+[root@CentOS74 ~]# echo $NAME
+zhangsan
+[root@CentOS74 ~]# read NAME AGE
+zhangsan 18
+[root@CentOS74 ~]# echo $NAME
+zhangsan
+[root@CentOS74 ~]# echo $AGE
+18
+```
+
+**从文件重定向接受输入**
+
+```bash
+[root@CentOS74 ~]# cat f.txt 
+a b
+[root@CentOS74 ~]# read x y < f.txt
+[root@CentOS74 ~]# echo $x $y
+a b
+```
+
+**通过管道接受输入**
+
+```bash
+[root@CentOS74 ~]# echo 1 2 | (read x y; echo x=$x y=$y)
+x=1 y=2
+[root@CentOS74 ~]# echo 1 2 | read x y; echo x=$x y=$y
+x= y=
+```
+
+> man bash：
+>
+> Each command in a pipeline is executed as a separate process (i.e., in a subshell).
+
+## bash配置文件
+
+### 按生效范围分两类
+
+全局配置：
+
+```bash
+/etc/profile
+/etc/profile.d/*.sh
+/etc/bashrc
+```
+
+个人配置：
+
+```bash
+~/.bash_profile
+~/.bashrc
+```
+
+### shell登录两种方式分类
+
+#### 交互式登录
+
+- 直接通过终端输入用户名密码登录
+- 使用`su - username`切换用户
+
+配置文件执行顺序：
+
+```bash
+/etc/profile
+/etc/profile.d/*.sh
+~/.bash_profile
+~/.bashrc
+/etc/bashrc
+```
+
+#### 非交互式登录
+
+- `su username`
+- 图形界面下打开终端
+- 执行脚本
+- 任何其它的bash实例
+
+执行顺序：
+
+```bash
+/etc/profile.d/*.sh
+/etc/bashrc
+~/.bashrc
+```
+
+### 按功能划分分类
+
+profile类和bashrc类
+
+#### profile类
+
+为交互式登录的shell提供配置
+
+全局：`/etc/profile`，`/etc/profile.d/*.sh`
+
+个人：`~/.bash_profile`
+
+功能：
+
+- 用于定义环境变量
+- 运行命令或脚本
+
+#### bashrc类
+
+为非交互式和交互式登录的shell提供配置
+
+全局：`/etc/bashrc`
+
+个人：`~/.bashrc`
+
+功能：
+
+- 定义命令别名和函数
+- 定义本地变量
+
+### 编辑配置文件如何生效
+
+1. 重新启动shell进程
+2. `source | . 配置文件` 
+
+```bash
+. ~/.bashrc
 ```
 
