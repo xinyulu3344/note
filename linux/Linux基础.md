@@ -1609,3 +1609,81 @@ n > 0：修改时间在n天之前的文件
 -ctime n
 ```
 
+**根据权限查找**
+
+```bash
+-perm [/|-]MODE
+MODE: 精确权限匹配
+/MODE: 任何一类(u,g,o)对象的权限中，只要能一位匹配即可，或关系，+从CentOS7开始淘汰
+-MODE: 每一类对象都必须同时拥有指定权限，与关系
+0 表示不关注
+```
+
+示例：
+
+```bash
+find -perm 755  会匹配权限模式恰好是755的文件
+find -perm /222 ugo，有一个有写权限，就匹配
+find -perm -222 ugo，都有写权限，才匹配
+find -perm -002 ugo，只有o有写权限，才匹配
+```
+
+**动作处理**
+
+```bash
+-print              默认处理动作，输出至屏幕
+-ls                 类似于对查找到的文件执行ls -l命令
+-fls file           查找到的所有文件的长格式信息保存至指定文件中，相当于-ls > file
+-delete             删除查找到的文件，直接删，慎用！
+-ok COMMAND {} \;   对查找到的每个文件执行由COMMAND指定的命令，对于每个文件执行命令之前，都会交互式要求用户确认
+-exec COMMAND {} \; 对查找到的每个文件执行由COMMAND指定的命令。{}用于引用查找到的文件名称自身
+```
+
+示例：
+
+```bash
+# 备份文件，添加.orig这个扩展名
+find /data/ -name "*.conf" -exec cp {} {}.orig \;
+
+# 提示删除存在时间超过3天以上的joe用户的临时文件
+find /tmp/ -ctime +3 -user joe -ok rm {} \;
+
+# 在主目录中寻找可被其它用户写入的文件
+find ~ -perm -002 -exec chmod o-w {} \;
+
+# 查找/data下的权限为644，后缀为sh的普通文件，增加执行权限
+find /data/ -type f -perm 644 -name "*.sh" -exec chmod 755 {} \;
+```
+
+### 参数替换
+
+由于很多命令不支持管道符`|`来传递参数，`xargs`用于产生某个命令的参数。xargs可以读入stdin的数据，并且以空格符或回车符将stdin的数据分隔成为参数。
+
+另外，许多命令不能接收过多参数，命令执行可能会失败，xargs可以解决。
+
+注意：文件名或者是其他意义的名词内含有空格符的情况
+
+`find`和`xargs`的组合：
+
+```bash
+find | xargs COMMAND
+```
+
+示例：
+
+```bash
+find /data/ -name "*.sh" | xargs ls -Sl
+
+# 查找有特殊权限的文件，并排序
+find /bin/ -perm /7000 |xargs ls -Sl
+
+# 以字符nul作为分隔符
+find -type f -name "*.txt" -print0 | xargs -0 ls -Sl
+
+# 并发执行多个进程
+seq 100 | xargs -i -P10 wget -P /data http://10.0.0.8/{}.html
+
+# 并发下载视频
+seq 389 | xargs -i -P3 you-get https://www.bilibili.com/video/av36489007?p={}
+```
+
