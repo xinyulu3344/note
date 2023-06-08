@@ -1687,3 +1687,188 @@ seq 100 | xargs -i -P10 wget -P /data http://10.0.0.8/{}.html
 seq 389 | xargs -i -P3 you-get https://www.bilibili.com/video/av36489007?p={}
 ```
 
+## 打包压缩解压缩
+
+- compress / uncompress
+- gzip / gunzip
+- bzip2 / bunzip2
+- xz / unxz
+- zip / unzip
+- tar
+- split
+- cpio
+
+### compress / uncompress
+
+安装：
+
+```bash
+yum install -y ncompress
+```
+
+compress常用选项：
+
+```bash
+-d 解压缩，相当于uncompress
+-c 结果输出至标准输出，不删除原文件
+-v 显示详情
+```
+
+压缩：
+
+```bash
+compress -c FILE > FILE.Z
+```
+
+解压缩：
+
+```bash
+uncompress FILE.Z
+```
+
+### gzip和gunzip
+
+gzip常用选项：
+
+```bash
+-d 解压缩，相当于gunzip
+-c 结果输出至标准输出，不删除原文件
+-# 指定压缩比，#取值为1-9，值越大压缩比越大
+-k --keep 保留原文件，CentOS8新特性，1.9版本，CentOS7是1.5版本不支持。
+```
+
+示例：
+
+```bash
+# 压缩
+gzip -c FILE > FILE.gz
+
+# 解压缩
+gzip -c -d FILE.gz > FILE
+
+# 查看压缩文件内容
+zcat FILE.gz
+
+# 通过重定向压缩内容
+cat FILE | gzip > FILE.gz
+```
+
+### bzip2和bunzip2
+
+bzip2常用选项：
+
+```bash
+-k --keep，保留源文件
+-d 解压缩
+-c 结果输出至标准输出，不删除原文件
+-# 1-9，压缩比，值越大，压缩比越大，默认为9
+```
+
+示例：
+
+```bash
+# 压缩
+bzip2 -k FILE
+
+# 解压缩
+bunzip2 -k FILE.bz2
+
+# 查看压缩文件内容
+bzcat FILE.bz2
+```
+
+### xz和unxz
+
+常用选项：
+
+```bash
+-k --keep 保留原文件
+-d 解压缩
+-c 结果输出至标准输出，不删除原文件
+-# 1-9，压缩比，值越大，压缩比越大，默认为6
+```
+
+示例：
+
+```bash
+xz -k FILE
+unxz -k FILE
+xzcat FILE.xz
+```
+
+### zip和unzip
+
+zip可以实现打包目录和文件并压缩，但可能会丢失文件属性信息，如：所有者和组信息，一般建议用tar代替
+
+示例：
+
+```bash
+# 打包并压缩，包括目录本身
+zip -r /backup/sysconfig.zip /etc/sysconfig/
+# 打包并压缩，不包括目录本身
+cd /etc/sysconfig/; zip -r /backup/sysconfig.zip *
+
+# 默认解压缩至当前目录
+unzip /backup/sysconfig.zip
+# 解压缩至指定目录，如果指定目录不存在，会在其父目录（必须事先存在）下自动生成
+unzip /backup/sysconfig.zip -d /tmp/config
+```
+
+### tar
+
+可以对目录和文件打包和压缩，并且不会丢失属性信息。注意无法保留acl权限
+
+```bash
+# 只打包不压缩
+tar -cvf home.tar /home
+# 解包
+tar -xvf home.tar
+# 解包到指定目录
+tar -xvf home.tar -C /root
+
+# 打包并压缩
+tar -zcvf home.tar.gz /home
+tar -jcvf home.tar.bz2 /home
+tar -Jcvf home.tar.xz /home
+
+# 解压缩解包
+tar -zxvf home.tar.gz
+tar -jxvf home.tar.bz2
+tar -Jxvf home.tar.xz
+
+# 预览
+tar -tf home.tar.gz
+
+# 利用tar进行文件复制
+tar -c /data/ | tar -x -C /backup
+
+# 打包压缩，排除一些目录
+tar -zcvf /root/t.tar.gz --exclude=/app/host1 --exclude=/app/host2 /app
+
+# -T指定输入文件，-X指定包含要排除的文件列表
+tar -zcvf backup.tar.gz -T /root/includefilelist -X /root/excludefilelist
+```
+
+### split
+
+切割文件
+
+常用选项：
+
+```bash
+-b SIZE  每个切割输出文件的大小 单位：K M G T P E Z Y(1024)，KB MB,...(1000)
+-d  使用数字后缀而不是字母
+```
+
+示例：
+
+```bash
+split -b size -d tar-file-name prefix-name
+split -b 1M mybackup.tar.gz mybackup-parts
+split -b 1M -d mybackup.tar.gz mybackup-parts
+```
+
+将多个切割小文件合并成一个大文件
+```bash
+cat mybackup-parts* > mybackup.tar.gz
+```
