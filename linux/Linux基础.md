@@ -1872,3 +1872,183 @@ split -b 1M -d mybackup.tar.gz mybackup-parts
 ```bash
 cat mybackup-parts* > mybackup.tar.gz
 ```
+
+## 软件管理
+
+将rpm包解包
+
+```bash
+rpm2cpio bash-4.2.46-35.el7_9.x86_64.rpm | cpio -idv
+```
+
+### 软件包管理相关文件
+
+**/var/lib/rpm** 
+
+- 程序包名称及版本
+- 依赖关系
+- 功能说明
+- 包安装后生成的各文件路径及校验码信息
+
+### 获取软件包的途径
+
+#### CentOS
+
+- https://www.centos.org/download
+- http://mirrors.aliyun.com
+- http://mirrors.sohu.com
+- http://mirrors.163.com
+
+#### Ubuntu
+
+- http://cdimage.ubuntu.com/releases/
+- http://releases.ubuntu.com
+
+#### 第三方组织
+
+- Fedora-EPEL：Extra Packages for Enterprise Linux
+  - https://fedoraproject.org/wiki/EPEL
+  - https://mirrors.aliyun.com/epel/
+- Rpmforge官网：http://repoforge.org ，RHEL推荐，即将关闭
+- Community Enterprise Linux Repository：http://www.elrepo.org，支持最新的内核和硬件相关包
+
+#### 软件项目官方站点
+
+#### 搜索引擎
+
+- http://pkgs.org
+- http://rpmfind.net
+- http://rpm.pbone.net
+- https://sourceforge.net
+
+#### 自己制作
+
+将源码文件，利用工具，如：rpmbuild，fpm等工具制作成rpm包文件
+
+### RPM包管理器
+
+安装、卸载、升级、查询、校验、数据库维护
+
+#### 包查询
+
+常用选项：
+
+```bash
+-c --configfiles  只查询配置文件
+-d --docfiles     查询软件的文档
+-f --file         查看指定文件由哪个软件包提供
+-p --package      针对尚未安装的软件包做查询操作
+--changelog       查询rpm包的changelog
+-l --list         查询软件包安装后生成的所有文件
+--scripts         查询软件包携带的脚本
+```
+
+
+
+**查询包是否安装：**
+
+```
+rpm -q xxx
+rpm -qa | grep xxx
+rpm -qa "*xxx*"
+```
+
+**查询软件包的信息：**
+
+```bash
+# 已安装
+# rpm -qi tree
+# 未安装
+# rpm -qpi rpm文件路径
+Name        : tree
+Version     : 1.6.0
+Release     : 10.el7
+Architecture: x86_64
+Install Date: Mon 18 Oct 2021 02:36:42 PM CST
+Group       : Applications/File
+Size        : 89505
+License     : GPLv2+
+Signature   : RSA/SHA256, Fri 04 Jul 2014 01:36:46 PM CST, Key ID 24c6a8a7f4a80eb5
+Source RPM  : tree-1.6.0-10.el7.src.rpm
+Build Date  : Tue 10 Jun 2014 03:28:53 AM CST
+Build Host  : worker1.bsys.centos.org
+Relocations : (not relocatable)
+Packager    : CentOS BuildSystem <http://bugs.centos.org>
+Vendor      : CentOS
+URL         : http://mama.indstate.edu/users/ice/tree/
+Summary     : File system tree viewer
+Description :
+The tree utility recursively displays the contents of directories in a
+tree-like format.  Tree is basically a UNIX port of the DOS tree
+utility.
+```
+
+**查询软件包的文件列表：**
+
+```bash
+# 软件包已安装
+# rpm -ql 包名
+
+# 软件包未安装
+# rpm -qpl rpm文件路径
+```
+
+**查询磁盘上某个文件来自哪个包：**
+
+```bash
+# rpm -qf /usr/bin/tree
+tree-1.6.0-10.el7.x86_64
+```
+
+#### 包安装
+
+```bash
+rpm -ivh xxx.rpm
+```
+
+**恢复一个误删除的文件：**
+
+- `rpm -ivh --force xxx.rpm`
+- 解包之后拷贝文件
+
+#### 包升级和降级
+
+```bash
+rpm --upgrade|-U [install-options] PACKAGE_FILE
+rpm --freshen|-F [install-options] PACKAGE_FILE
+
+--upgrade: 安装有旧版程序包，则升级，如果不存在旧版程序包，则安装
+--freshen: 安装有旧版程序包，则升级，如果不存在旧版程序包，则不执行升级操作
+install-options:
+  --oldpackage: 降级
+  --force: 强制安装
+```
+
+常用组合：
+
+```bash
+rpm -Uvh PACKAGE_FILE ...
+rpm -Fvh PACKAGE_FILE ...
+```
+
+> 注意
+>
+> 1. 不要对内核做升级操作；Linux支持多版本内核并存，因此直接安装新版本内核
+> 2. 如果原程序包的配置文件安装后曾被修改，升级时，新版本提供的同一个配置文件不会直接覆盖老版本的配置文件，而把新版本文件重命名(FILENAME.rpmnew)后保留。
+
+#### 包卸载
+
+```bash
+rpm -e PACKAGE_NAME
+```
+
+> 注意：当包卸载时，对应的配置文件不会删除，以FILENAME.rpmsave形式保留
+
+#### 包校验
+
+在安装包时，系统也会检查包的来源是否是合法的
+
+```bash
+rpm -K
+```
+
