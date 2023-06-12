@@ -2048,7 +2048,131 @@ rpm -e PACKAGE_NAME
 
 在安装包时，系统也会检查包的来源是否是合法的
 
+**检查包的完整性和签名**
+
 ```bash
-rpm -K
+rpm -K|--ckecksig RPMFILE
+```
+
+**在检查包的来源和完整性之前，必须导入所需要的公钥**
+
+```bash
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+rpm -qa "gpg-pubkey*"
+```
+
+**查看导入的公钥内容：**
+
+```bash
+rpm -qi "gpg-pubkey-f4a80eb5-53a7ff4b"
+```
+
+**检查RPM包中，哪些文件和初始安装时有变化：**
+
+```bash
+rpm -V|--verify PACKAGE
+```
+
+示例：
+
+```bash
+# rpm -V nginx
+S.5....T.  c /etc/nginx/nginx.conf
+```
+
+| 返回字段 | 解释               |
+| -------- | ------------------ |
+| S        | 文件大小变化       |
+| M        | 权限和文件类型变化 |
+| 5        | MD5值变化          |
+| D        | 设备编号变化       |
+| L        | 软链接内容变化     |
+| U        | 用户属主变化       |
+| G        | 用户属组变化       |
+| T        | mtime变化          |
+| P        | capabilities变化   |
+
+#### 数据库
+
+rpm包安装时生成的信息，都放在rpm数据库中
+
+```bash
+/var/lib/rpm
+```
+
+**可以重建数据库：**
+
+```bash
+# 初始化，如果事先不存在数据库，则新建之，否则，不执行任何操作
+rpm --initdb
+# 重建已安装的包头的数据库索引目录
+rpm --rebuilddb
+```
+
+### yum和dnf
+
+yum: Yellowdog Update Modifier，rpm的前端程序，可解决软件包相关依赖性，可在多个库之间定位软件包，up2date的替代工具，CentOS8用dnf替代了yum，不过保留了和yum的兼容性，配置也是通用的
+
+#### 配置文件
+
+```bash
+[base]
+name=CentOS-$releasever - Base
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+```
+
+#### 常用命令
+
+```bash
+yum makecache
+yum list
+yum install xxx -y
+
+# CentOS8会同步删除依赖，CentOS7不会同步删除依赖
+yum remove xxx
+
+yum history
+yum history info 3
+yum history undo 3
+yum history redo 3
+
+
+yum repolist 
+yum repolist all
+```
+
+**yum操作历史：**
+
+```bash
+# 查看历史记录
+# yum history
+Loaded plugins: fastestmirror, langpacks
+ID     | Command line             | Date and time    | Action(s)      | Altered
+-------------------------------------------------------------------------------
+    94 | install -y ncompress     | 2023-06-08 21:39 | Install        |    1
+    93 | install libaio-devel     | 2023-04-23 11:14 | Install        |    1
+    92 | install fio              | 2023-04-23 10:57 | Install        |    5
+
+# 查看某个历史记录的详细信息
+# # yum history info 94
+Loaded plugins: fastestmirror, langpacks
+Transaction ID : 94
+Begin time     : Thu Jun  8 21:39:47 2023
+Begin rpmdb    : 862:ee98b617627427ea69d358dc3e116c510d133d0b
+End time       :            21:39:48 2023 (1 seconds)
+End rpmdb      : 863:c8be1caca54f9ed2e746b9b540081916c4de46f6
+User           : xinyulu <xinyulu>
+Return-Code    : Success
+Command Line   : install -y ncompress
+Transaction performed with:
+    Installed     rpm-4.11.3-32.el7.x86_64                        @base
+    Installed     yum-3.4.3-158.el7.centos.noarch                 @base
+    Installed     yum-plugin-fastestmirror-1.1.31-46.el7_5.noarch @updates
+Packages Altered:
+    Install ncompress-4.2.4.4-3.1.el7_8.x86_64 @base
+history info
 ```
 
