@@ -2116,12 +2116,15 @@ yum: Yellowdog Update Modifier，rpm的前端程序，可解决软件包相关�
 #### 配置文件
 
 ```bash
+# 仓库id，唯一
 [base]
+# 仓库名称
 name=CentOS-$releasever - Base
 #mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
 baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+enabled=1
 ```
 
 #### 常用命令
@@ -2139,9 +2142,14 @@ yum history info 3
 yum history undo 3
 yum history redo 3
 
-
-yum repolist 
+# 默认只显示启用的仓库
+yum repolist
+# 显示所有仓库，无论是否启用
 yum repolist all
+yum repolist [all|enabled|disabled]
+
+# 临时启用禁用仓库
+yum --enablerepo=ep* --disablerepo=A* repolist
 ```
 
 **yum操作历史：**
