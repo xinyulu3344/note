@@ -2132,10 +2132,26 @@ enabled=1
 ```bash
 yum makecache
 yum list
+# 旧版本包也列出
+yum list --showduplicates
 yum install xxx -y
+yum reinstall xxx -y
+
+# 升级软件包
+yum update xxx
+
+# 检查有哪些升级
+yum check-update
 
 # CentOS8会同步删除依赖，CentOS7不会同步删除依赖
 yum remove xxx
+
+# 查看xxx来自于哪个包
+yum provides xxx
+yum info PACKAGE
+
+# 查看包的依赖
+yum deplist PACKAGE
 
 yum history
 yum history info 3
@@ -2149,7 +2165,12 @@ yum repolist all
 yum repolist [all|enabled|disabled]
 
 # 临时启用禁用仓库
-yum --enablerepo=ep* --disablerepo=A* repolist
+yum --disablerepo=A* --enablerepo=ep* repolist
+
+# 启用仓库
+yum-config-manager --disable "仓库id"
+# 禁用仓库
+yum-config-manager --enable "仓库id"
 ```
 
 **yum操作历史：**
