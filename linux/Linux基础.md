@@ -2137,6 +2137,17 @@ yum list --showduplicates
 yum install xxx -y
 yum reinstall xxx -y
 
+# 安装及升级本地程序包
+yum localinstall|install rpmfile1 rpmfile2 ...
+yum localupdate|update rpmfile1 rpmfile2 ...
+
+## 包组管理
+yum groupinstall group1 group2 ...
+yum groupupdate group1 group2 ...
+yum grouplist [hidden] [group2] [...]
+yum groupremove group1 group2 ...
+yum groupinfo group1 ...
+
 # 升级软件包
 yum update xxx
 
@@ -2203,5 +2214,171 @@ Transaction performed with:
 Packages Altered:
     Install ncompress-4.2.4.4-3.1.el7_8.x86_64 @base
 history info
+
+
+# cat /var/log/yum.log
+```
+
+### 实现私用yum仓库
+
+下载所有yum源仓库的相关包和meta数据
+
+```bash
+# CentOS8 dnf
+dnf reposync --help
+dnf reposync --repoid=REPOID --download-metadata -p /path
+
+# CentOS7及以前版本reposync工具，来自yum-utils包
+reposync --repoid=REPOID --download-metadata -p /path
+```
+
+创建私有yum仓库
+
+```bash
+# 没有meta数据的时候需要执行该命令生成元数据
+createrepo [options] <directory>
+```
+
+## 磁盘管理
+
+每个设备都有设备号。
+
+- 主设备号：标识设备类型
+- 次设备号：标识同一类型下的不同设备。
+
+**查看设备号：**
+
+```bash
+# ll /dev/vd*
+brw-rw---- 1 root disk 253,  0 May 29 12:45 /dev/vda
+brw-rw---- 1 root disk 253,  1 May 29 12:45 /dev/vda1
+brw-rw---- 1 root disk 253,  2 May 29 12:45 /dev/vda2
+brw-rw---- 1 root disk 253,  3 May 29 12:45 /dev/vda3
+brw-rw---- 1 root disk 253, 16 May 29 12:45 /dev/vdb
+brw-rw---- 1 root disk 253, 17 May 29 12:45 /dev/vdb1
+```
+
+**创建设备文件：**
+
+```bash
+# Usage: mknod [OPTION]... NAME TYPE [MAJOR MINOR]
+mknod /data/partition-vda3 b 253 3
+```
+
+**扫描磁盘设备：**
+
+```bash
+echo "- - -" > /sys/class/scsi_host/host0/scan;echo "- - -" > /sys/class/scsi_host/host1/scan;echo "- - -" > /sys/class/scsi_host/host3/scan
+```
+
+### MBR分区
+
+**MBR分区结构图：**
+
+![image-20230616173645718](images/image-20230616173645718.png)
+
+**备份恢复MBR分区表**
+
+```bash
+# 备份
+dd if=/dev/vda of=/data/mbr.img bs=1 count=64 skip=446
+
+# 恢复
+dd if=/data/mbr.img of=/dev/vda bs=1 count=64 seek=446
+```
+
+### GPT分区
+
+### 分区管理
+
+```bash
+fdisk
+gdisk
+parted
+```
+
+#### parted
+
+parted的操作都是实时生效的，谨慎使用
+
+```bash
+# 打印分区信息
+parted /dev/vdb print
+
+# 创建分区表
+parted /dev/vdb mklabel gpt|msdos
+# 创建分区
+parted /dev/vdb mkpart primary 1 200（默认单位是MB）
+# 删除分区
+parted /dev/vdb rm 1
+# 列出所有分区
+parted -l
+```
+
+### 文件系统
+
+查看文件系统块大小：
+
+```bash
+# ext系列
+tune2fs -l /dev/vdb1 | grep "Block size"
+# xfs
+xfs_info /dev/vdb1
+```
+
+#### 创建文件系统
+
+**mkfs**
+
+```bash
+-t [ext2,ext3,ext4,xfs] 指定文件系统类型
+-b {1024,2048,4096}     指定块大小，单位字节
+-L 'LABEL'              设置卷标
+-j                      相当于-t ext3
+-i #     为数据空间中每#个字节创建一个inode；不应该小于block大小
+-N #     指定分区中创建多少个inode
+-I       一个inode记录占用的磁盘空间大小，128-4096
+-m #     默认5%，为管理人员预留空间占总空间的百分比
+-O FEATURE[,...]  启用指定特性
+-O ^FEATURE       关闭指定特性
+```
+
+#### 查看命令
+
+- blkid
+- lsblk
+- findfs
+- e2label
+
+#### 文件系统检测和修复
+
+fsck: File System Check
+
+```bash
+fsck.FS_TYPE
+fsck -t FS_TYPE
+```
+
+常用选项：
+
+```bash
+-a 自动修复
+-r 交互式修复错误
+```
+
+e2fsck: ext系列文件系统检测修复工具
+
+```bash
+-y 自动回答yes
+-f 强制修复
+-p 自动进行安全的修复文件系统问题
+```
+
+xfs_repair: xfs文件系统专用的检测修复工具
+
+```bash
+-f 修复文件
+-n 只检查
+-d 允许修复只读的挂载设备，在单用户下修复/时使用，然后立即reboot
 ```
 
