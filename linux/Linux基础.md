@@ -2382,3 +2382,161 @@ xfs_repair: xfs文件系统专用的检测修复工具
 -d 允许修复只读的挂载设备，在单用户下修复/时使用，然后立即reboot
 ```
 
+#### 挂载
+
+格式：
+
+```bash
+mount [-fnrsvw] [-t vsftype] [-o options] device mountpoint
+```
+
+**device：指明要挂载的设备**
+
+- 设备文件：例如`/dev/vdb1`
+- 卷标：`-L 'LABEL'`
+- UUID：`-U 'UUID'`
+- 伪文件系统：`proc、sysfs、devtmpfs、configfs`
+
+**常用选项：**
+
+```bash
+-r  readonly，只读挂载
+-w  读写挂载
+-n  不更新/etc/mtab，mount不可见
+-a  自动挂载所有支持自动挂载的设备(定义在了/etc/fstab中，且挂载选项中有auto功能)
+-L 'LABEL' 以卷标指定挂载设备
+-U 'UUID' 以UUID指定要挂载的设备
+-B, --bind 绑定目录到另一个目录上
+
+-o options：挂载文件系统的选项，已逗号分隔
+  async     异步模式，内存更改时，写入缓存区buffer，过一段时间再写到磁盘
+  sync      同步模式，内存更改时，同步写入磁盘
+  atime/noatime   是否更新atime，包括文件和目录
+  diratime/nodiratime  是否更新atime，只包括目录
+  auto/noauto  是否支持开机自动挂载，是否支持-a选项
+  exec/noexec  是否允许执行二进制程序
+  dev/nodev    是否支持在此文件系统上使用设备文件
+  suid/nosuid  是否支持suid和sgid权限
+  remount      重新挂载
+  ro/rw        只读/读写
+  user/nouser  是否允许普通用户挂载此设备，/etc/fstab使用
+  acl          启用此文件系统上的acl功能
+  loop         使用loop设备
+  _netdev      当网络可用时才对网络资源进行挂载，如：NFS文件系统
+  defaults  相当于rw,suid,dev,exec,auto,nouser,async
+  
+```
+
+**查看当前挂载点有哪些进程访问：**
+
+```bash
+lsof MOUNTPOINT
+fuser -vm MOUNTPOINT
+```
+
+示例：
+
+```bash
+# lsof /mnt
+COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF     NODE NAME
+bash    21726 root  cwd    DIR 253,17       34 67219860 /mnt/data
+```
+
+```bash
+# fuser -vm /mnt
+                     USER        PID ACCESS COMMAND
+/mnt:                root     kernel mount /mnt
+                     root      21726 ..c.. bash
+```
+
+**干掉访问文件的所有进程:**
+
+```bash
+# fuser -kvm /mnt
+                     USER        PID ACCESS COMMAND
+/mnt:                root     kernel mount /mnt
+                     root      24562 ..c.. bash
+```
+
+**findmnt判断是否是挂载点**
+
+```bash
+[22:36:12 root@CentOS74 ~]# findmnt /mnt
+TARGET SOURCE    FSTYPE OPTIONS
+/mnt   /dev/vdb1 xfs    rw,relatime,attr2,inode64,noquota
+[22:36:13 root@CentOS74 ~]# 
+[22:36:14 root@CentOS74 ~]# echo $?
+0
+[22:36:20 root@CentOS74 ~]# 
+[22:36:20 root@CentOS74 ~]# findmnt /etc
+[22:36:24 root@CentOS74 ~]# 
+[22:36:25 root@CentOS74 ~]# echo $?
+1
+```
+
+### RAID
+
+#### RAID-0
+
+可用空间：`N * min(S1, S2,...)`，所有磁盘中容量最小的那个乘以硬盘数量
+
+容错能力：无
+
+最少磁盘数：2, 2+
+
+#### RAID-1
+
+镜像
+
+读性能提升、写性能下降
+
+可用空间：`1 * min(S1, S2, ...)`
+
+有冗余能力
+
+最少磁盘数：2, 2N
+
+#### RAID-4
+
+至少三块盘，其中一块盘用来做校验，容易坏，生产不用。
+
+#### RAID-5
+
+读、写性能提升
+
+可用空间 `(N-1) * min(S1, S2, ...)` 
+
+容错能力：允许最多1块盘损坏
+
+最少磁盘数：3, 3+
+
+#### RAID-6
+
+读写性能提升
+
+可用空间：`(N-2) * min(S1, S2, ...)`
+
+容错能力：允许最多2块盘损坏
+
+最少磁盘数：4, 4+
+
+#### RAID-10
+
+![image-20230618234945514](images/image-20230618234945514.png)
+
+读写性能提升
+
+可用空间：`N * min(S1, S2, ...) / 2`
+
+容错能力：每组镜像最多1块盘损坏
+
+最少磁盘数：4, 4+
+
+#### RAID-01
+
+容错能力比raid-10差
+
+#### RAID-50
+
+
+
