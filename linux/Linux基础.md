@@ -2538,5 +2538,137 @@ TARGET SOURCE    FSTYPE OPTIONS
 
 #### RAID-50
 
+### 逻辑卷LVM
 
+允许空间动态扩展
+
+**实现过程：**
+
+- 将设备指定为物理卷
+- 用一个或多个物理卷来创建一个卷组。物理卷是用固定大小的物理区域(Physical Extent，PE)来定义的。
+- 在物理卷上创建的逻辑卷，是由物理区域（PE）组成
+- 可以在逻辑卷上创建文件系统并挂载
+
+第一个逻辑卷对应设备名：`/dev/dm-#`
+
+dm: device mapper，将一个或多个底层块设备组织成一个逻辑设备的模块
+
+软链接：
+
+- `/dev/mapper/VG_NAME-LV_NAME`
+- `/dev/VG_NAME/LV_NAME`
+
+#### pv管理工具
+
+显示pv信息
+
+```bash
+# 简要pv信息显示
+# pvs
+  PV         VG Fmt  Attr PSize  PFree
+  /dev/vdc      lvm2 ---  20.00g 20.00g
+  /dev/vdd      lvm2 ---  20.00g 20.00g
+
+# 详细pv信息显示
+# pvdisplay
+  "/dev/vdd" is a new physical volume of "20.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/vdd
+  VG Name
+  PV Size               20.00 GiB
+  Allocatable           NO
+  PE Size               0
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               kqsFX0-3o97-47E3-v7af-TddA-67Z5-iyMVgc
+
+  "/dev/vdc" is a new physical volume of "20.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/vdc
+  VG Name
+  PV Size               20.00 GiB
+  Allocatable           NO
+  PE Size               0
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               l1Oiwt-z228-GTm8-wsov-cYMq-QHQK-5J72tD
+
+```
+
+创建pv
+
+```bash
+# pvcreate /dev/vdc /dev/vdd
+  Physical volume "/dev/vdc" successfully created.
+  Physical volume "/dev/vdd" successfully created.
+```
+
+删除pv
+
+```bash
+```
+
+
+
+#### vg管理工具
+
+创建vg
+
+```bash
+# vgcreate vg_mysql /dev/vdc /dev/vdd
+  Volume group "vg_mysql" successfully created
+```
+
+查看vg
+
+```bash
+# vgs
+  VG       #PV #LV #SN Attr   VSize  VFree
+  vg_mysql   2   0   0 wz--n- 39.99g 39.99g
+
+# vgdisplay
+  --- Volume group ---
+  VG Name               vg_mysql
+  System ID
+  Format                lvm2
+  Metadata Areas        2
+  Metadata Sequence No  1
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                0
+  Open LV               0
+  Max PV                0
+  Cur PV                2
+  Act PV                2
+  VG Size               39.99 GiB
+  PE Size               4.00 MiB
+  Total PE              10238
+  Alloc PE / Size       0 / 0
+  Free  PE / Size       10238 / 39.99 GiB
+  VG UUID               b0em5x-j2zY-H3dd-26cq-gkRX-SZhs-lTtSYW
+```
+
+
+
+#### lv管理工具
+
+创建lv
+
+```bash
+-n lv名称
+-l 分配多少个PE，默认一个PE 4MB
+-L 分配多大空间
+lvcreate -n 
+```
+
+
+
+#### 扩缩逻辑卷
+
+#### 跨主机迁移卷组
+
+#### 逻辑卷快照
 
