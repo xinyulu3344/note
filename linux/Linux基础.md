@@ -2651,6 +2651,13 @@ dm: device mapper，将一个或多个底层块设备组织成一个逻辑设备
   VG UUID               b0em5x-j2zY-H3dd-26cq-gkRX-SZhs-lTtSYW
 ```
 
+扩展卷组
+
+```bash
+pvcreate /dev/vde
+vgextend vg_mysql /dev/vde
+```
+
 
 
 #### lv管理工具
@@ -2661,14 +2668,122 @@ dm: device mapper，将一个或多个底层块设备组织成一个逻辑设备
 -n lv名称
 -l 分配多少个PE，默认一个PE 4MB
 -L 分配多大空间
-lvcreate -n 
+
+# 从vg_mysql这个卷组分配600MB大小的空间
+lvcreate -n lv_data -L 600M vg_mysql
+```
+
+查看lv
+
+```bash
+# lvs
+  LV      VG       Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  lv_data vg_mysql -wi-a----- 600.00m                                                    
+
+# lvdisplay 
+  --- Logical volume ---
+  LV Path                /dev/vg_mysql/lv_data
+  LV Name                lv_data
+  VG Name                vg_mysql
+  LV UUID                rpTix0-MRPn-Y0rs-MNvW-zujK-Z42P-mKVFPT
+  LV Write Access        read/write
+  LV Creation host, time CentOS74, 2023-06-27 22:32:54 +0800
+  LV Status              available
+  # open                 0
+  LV Size                600.00 MiB
+  Current LE             150
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     8192
+  Block device           252:0
+```
+
+格式化
+
+```bash
+# mkfs.ext4 /dev/vg_mysql/lv_data
+```
+
+挂载
+```bash
+mount /dev/mapper/vg_mysql-lv_data /data
 ```
 
 
 
 #### 扩缩逻辑卷
 
+扩容lv
+
+```bash
+# 扩100个PE
+lvextend -r -l +100
+
+# 把剩下的空间都扩容
+lvextend -r -l +100%free
+```
+
+如果lvextend没加-r选项，则需要再手动扩容文件系统
+
+```bash
+# ext系列
+resize2fs /dev/vg_mysql/lv_data
+
+# xfs文件系统
+xfs_growfs mountpoint
+```
+
+缩减逻辑卷
+
+> 注意：缩减有数据损坏的风险，建议先备份再缩减，xfs文件系统不支持缩减
+
+```bash
+umount /dev/vg_mysql/lv_data
+e2fsck -f /dev/vg_mysql/lv_data
+resiz2fs /dev/vg_mysql/lv_data 100[kKmMgGtT]
+lvreduce -L [-]100[kKmMgGtT] /dev/vg_mysql/lv_data
+mount /dev/vg_mysql/lv_data /data
+```
+
 #### 跨主机迁移卷组
+
+源机器
+
+1. umount所有卷组上的逻辑卷
+
+2. 禁用卷组
+
+   ```bash
+   vgchange -a n vg0
+   lvdisplay
+   ```
+
+3. 导出卷组
+
+   ```bash
+   vgexport vg0
+   pvscan
+   vgdisplay
+   ```
+
+拆下旧硬盘，插到新硬盘上
+
+目标机器
+
+1. 导入卷组
+
+   ```bash
+   vgimport vg0
+   ```
+
+2. 启用
+
+   ```bash
+   vgchange -a y vg0
+   ```
+
+3. mount所有卷组上的逻辑卷
 
 #### 逻辑卷快照
 
