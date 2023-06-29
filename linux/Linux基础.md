@@ -2787,3 +2787,16 @@ mount /dev/vg_mysql/lv_data /data
 
 #### 逻辑卷快照
 
+#### 将磁盘从VG中移走
+
+```bash
+# 将/dev/vdc这个pv中的数据移动到卷组中其它物理卷
+pvmove /dev/vdc
+
+# 将/dev/vdc这个pv从卷组中移走
+vgreduce vg_mysql /dev/vdc
+
+# 将/dev/vdc这个物理卷撤销
+pvremove /dev/vdc
+```
+
