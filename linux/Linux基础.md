@@ -2800,3 +2800,223 @@ vgreduce vg_mysql /dev/vdc
 pvremove /dev/vdc
 ```
 
+## 网络管理
+
+### ifconfig命令
+
+```bash
+# 启用禁用网卡
+ifconfig eth0 down
+ifconfig eth0 up
+# 查看所有网卡信息
+ifconfig -a
+# 临时配置地址
+ifconfig eth0 192.168.1.172/20
+# 给一个网卡配置多个地址
+ifconfig eth0:0 192.168.1.172/20
+# 撤销子接口
+ifconfig eth0:0 down
+# 清除地址
+ifconfig eth0 0.0.0.0/0
+
+ifconfig -s
+```
+
+### route命令
+
+### ip命令
+
+```bash
+ip link
+ip link set eth0 down
+ip link set eth0 up
+ip link set eth0 name xxx
+```
+
+```bash
+ip add
+ip address add 192.168.1.172/20 dev eth0 label eth0:0
+ip address del 192.168.1.172/20 dev eth0
+
+# 清空eth0的地址信息
+ip address flush dev eth0
+```
+
+```bash
+ip route
+ip route add 192.168.2.0/24 via 192.168.2.1 dev eth0 proto static metric 100
+ip route del 192.168.2.0/24 via 192.168.2.1 dev eth0 proto static metric 100
+
+```
+
+
+
+### netstat命令
+
+常用选项：
+
+```bash
+-t tcp协议相关
+-u udp协议相关
+-w raw socket相关
+-l 显示监听服务socket
+-a 显示所有连接中的socket
+-n 不解析
+-e 显示网络其它信息
+-p 显示进程名和pid
+```
+
+常用组合：
+
+```bash
+netstat -tan
+netstat -uan
+netstat -tnl
+netstat -unl
+```
+
+
+
+### ss命令
+
+常用选项：
+
+```bash
+-t 
+-u
+-w
+-x
+-l
+-a
+-n
+-p
+-e
+-m 显示socket内存使用
+-o 
+```
+
+示例：
+
+```bash
+ss -l
+ss -pl
+ss -t -a
+ss -u -a
+ss -o state established '( dport = :22 or sport = :22)'
+```
+
+### 网络配置文件
+
+#### 网卡配置文件
+
+```bash
+]# cat /etc/sysconfig/network-scripts/ifcfg-eth0 
+TYPE=Ethernet
+BOOTPROTO=dhcp
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+NAME=eth0
+UUID=4285b2f2-7116-4d16-b39e-1bb06385ceb8
+DEVICE=eth0
+ONBOOT=yes
+```
+
+
+
+#### 路由配置文件
+
+```bash
+# cat /etc/sysconfig/network-scripts/route-eth1 
+default via 192.168.22.1 dev eth1 table 1000 pref 100
+192.168.22.0/24 dev eth1 src 192.168.22.7 table 1000
+```
+
+### 多网卡bonding
+
+几个模式：
+
+配置文件：
+
+```bash
+# /etc/sysconfig/network-scripts/ifcfg-bond0
+TYPE=bond
+DEVICE=bond0
+BOOTPROTO=none
+IPADDR=192.168.1.174
+PREFIX=20
+# miimon指定链路监测时间间隔。如果miimon=100，那么系统每隔100ms监测一次链路状态
+# 如果有一条线路不通就转入另一条线路
+BONDING_OPTS="mode=1 miimon=100"
+
+# /etc/sysconfig/network-scripts/ifcfg-eth0
+DEVICE=eth0
+BOOTPROTO=none
+MASTER=bond0
+SLAVE=yes
+ONBOOT=yes
+
+# /etc/sysconfig/network-scripts/ifcfg-eth1
+DEVICE=eth1
+BOOTPROTO=none
+MASTER=bond0
+SLAVE=yes
+ONBOOT=yes
+```
+
+查看bond状态
+
+```bash
+/proc/net/bonding/bond0
+```
+
+删除bond0
+
+```bash
+ifconfig bond0 down
+rmmod bonding
+```
+
+### nmap命令
+
+常用选项：
+
+```bash
+-sT
+-sS
+-sF,-sx,-sN
+-sn,-sP
+-sU
+-sA
+-sw
+-sR
+-b
+-P0
+-PT
+-PS
+-PI
+-PB
+-O
+-I
+-f
+-v
+-S <source IP>
+-g PORT
+-oN
+-oS
+--host_timeout
+--max_rtt_timeout
+--min_rtt_timeout
+-M count
+```
+
+
+
+```bash
+nmap -sn 192.168.1.1-254
+nmap -v -sn 192.168.0.0/20
+```
+

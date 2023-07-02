@@ -799,3 +799,109 @@ case支持glob风格的通配符：
 |: 或，如a或b
 ```
 
+### 循环
+
+#### for循环
+
+**格式1：**
+
+```bash
+# 语法1
+for NAME [in WORDS]; do COMMANDS; done
+
+for i in 1 2 3 4; do echo $i; done
+for i in {0..20}; do echo $i; done
+
+# 语法2
+for 变量名 in 列表; do
+    循环体
+done
+
+for i in 1 2 3 4; do
+    echo $i
+done
+
+# 语法3
+for 变量名 in 列表
+do
+    循环体
+done
+
+for i in 1 2 3 4
+do
+    echo $i
+done
+```
+
+for循环列表的生成方式：
+
+- 手写列表。1 2 3 4
+
+- 整数列表。
+
+  ```bash
+  {start..end}
+  $(seq [start [step]] end)
+  ```
+
+  
+
+- 返回列表的命令
+
+  ```bash
+  $(COMMAND)
+  ```
+
+- 使用glob
+
+  ```bash
+  for i in /var/log/*.log; do ll $i; done
+  ```
+
+- 变量引用
+
+  ```bash
+  sum=0
+  for i in $@;do
+      let sum+=i
+  done
+  echo sum=$sume
+  ```
+
+**格式2：**
+
+```bash
+for((i=0;i<10;i++))
+do
+    循环体
+done
+
+# 死循环
+for((;;))
+do
+    循环体
+done
+```
+
+#### while循环
+
+```bash
+while COMMANDS; do COMMANDS; done
+
+while CONDITION; do
+    循环体
+done
+```
+
+死循环：
+
+```bash
+while :; do
+    循环体
+done
+```
+
+
+
+#### until循环
+
