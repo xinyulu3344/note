@@ -3020,3 +3020,56 @@ nmap -sn 192.168.1.1-254
 nmap -v -sn 192.168.0.0/20
 ```
 
+## 进程管理
+
+### 进程管理相关工具
+
+#### 进程信息ps
+
+常用选项：
+
+```bash
+a 展示所有终端中的进程，默认只展示当前终端的进程
+x 展示不链接终端的进程
+u 显示进程所有者的信息
+f 显示进程树，相当于--forest
+k|--sort 属性 对属性进行排序，属性前加-表示倒序
+o 属性... 显示定制格式信息。pid cmd %cpu %mem
+L 显示支持的属性列表
+-C cmdlist 指定命令，多个命令用","分隔
+-L 显示线程
+-e 显示所有进程，相当于-A
+-f 显示完整格式进程信息
+-F 显示更完整格式进程信息
+-H 以进程层级格式显示进程相关信息
+-u userlist 指定有效的用户ID或名称
+-U userlist 指定真正的用户ID或名称
+-g gid或groupname
+-G gid或groupname
+--ppid pid 显示属于pid的子进程
+-t ttylist 指定tty，相当于t
+-M 显示SELinux信息，相当于Z
+```
+
+输出字段：
+
+```bash
+C: ps -ef显示列C表示CPU使用率
+VSZ: virtual memory size 虚拟内存集
+RSS: Resident Size，常驻内存集
+STAT: 进程状态
+    R: running
+    S: interruptable sleeping
+    D: uninterruptable sleeping
+    T: stopped
+    Z: zombie
+    +: 前台进程
+    l: 多线程进程
+    L: 内存分页并带锁
+    N: 低优先级进程
+    <: 高优先级进程
+    s: session leader，会话(子进程)发起者
+ni: nice值
+pri: priority 优先级
+rtprio: 实时优先级
+psr: processor CPU编号
