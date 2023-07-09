@@ -3073,3 +3073,119 @@ ni: nice值
 pri: priority 优先级
 rtprio: 实时优先级
 psr: processor CPU编号
+
+```
+
+#### 查看进程信息prtstat
+
+```bash
+# prtstat 11589
+Process: MonitorPlugin          State: S (sleeping)
+  CPU#:  0              TTY: 0:0        Threads: 10
+Process, Group and Session IDs
+  Process ID: 11589               Parent ID: 1232
+    Group ID: 11589              Session ID: 1232
+  T Group ID: -1
+
+Page Faults
+  This Process    (minor major):  5040831         7
+  Child Processes (minor major):      179         0
+CPU Times
+  This Process    (user system guest blkio): 2704.75 1605.25   0.00   0.00
+  Child processes (user system guest):         0.00   0.00   0.00
+Memory
+  Vsize:       642 MB    
+  RSS:         18 MB                     RSS Limit: 18446744073709 MB
+  Code Start:  0x400000                  Code Stop:  0xde6bac  
+  Stack Start: 0x7ffe6886f440
+  Stack Pointer (ESP): 0x7ffe6886f1d0    Inst Pointer (EIP):   0x458743
+Scheduling
+  Policy: normal
+  Nice:   0              RT Priority: 0 (non RT)
+# 
+# prtstat 11589 -r
+         pid: 11589                               comm: MonitorPlugin
+       state: S                                   ppid: 1232
+        pgrp: 11589                            session: 1232
+      tty_nr: 0                                  tpgid: -1
+       flags: 40402100                          minflt: 5040838
+     cminflt: 179                               majflt: 7
+     cmajflt: 0                                  utime: 270475
+       stime: 160525                            cutime: 0
+      cstime: 0                               priority: 20
+        nice: 0                            num_threads: 10
+ itrealvalue: 0                              starttime: 7867
+       vsize: 642834432                            rss: 4484
+      rsslim: 18446744073709551615                   startcode: 4194304
+     endcode: 14576556                      startstack: 140730652095552
+     kstkesp: 7FFE6886F1D0                     kstkeip: 458743
+       wchan: 18446744073709551615                       nswap: 0
+      cnswap: 18446744073709551615                 exit_signal: 17
+   processor: 0                            rt_priority: 0
+      policy: 0                  delayaccr_blkio_ticks: 0
+  guest_time: 0                            cguest_time: 0
+```
+
+#### 设置调整进程优先级nice、renice
+
+```bash
+# 设置优先级为N
+nice -n N COMMANN
+
+# 调整正在执行进程的优先级
+renice -n N pid...
+```
+
+#### 进程绑定CPU:taskset
+
+```bash
+taskset --help
+Usage: taskset [options] [mask | cpu-list] [pid|cmd [args...]]
+
+Options:
+ -a, --all-tasks         operate on all the tasks (threads) for a given pid
+ -p, --pid               operate on existing given pid
+ -c, --cpu-list          display and specify cpus in list format
+ -h, --help              display this help
+ -V, --version           output version information
+
+The default behavior is to run a new command:
+    taskset 03 sshd -b 1024
+You can retrieve the mask of an existing task:
+    taskset -p 700
+Or set it:
+    taskset -p 03 700
+List format uses a comma-separated list instead of a mask:
+    taskset -pc 0,3,7-11 700
+Ranges in list format can take a stride argument:
+    e.g. 0-31:2 is equivalent to mask 0x55555555
+
+For more information see taskset(1).
+```
+
+#### pgrep
+
+常用选项：
+
+```bash
+-u UID  有效UID
+-U UID  真实UID
+-t terminal 与指定终端相关的进程
+-a 显示完整格式的进程名
+-l 显示进程名
+-P PID 显示指定进程的子进程
+```
+
+#### pidof
+
+根据进程或脚本名称查看PID
+
+```bash
+pidof 进程名
+pidof -x 脚本名称
+```
+
+
+
+### 进程优先级
+
