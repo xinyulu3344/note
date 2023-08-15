@@ -2937,7 +2937,19 @@ default via 192.168.22.1 dev eth1 table 1000 pref 100
 
 ### 多网卡bonding
 
-几个模式：
+将多块网卡绑定同一IP地址对外提供服务，可以实现高可用或者负载均衡。直接给两块网卡设置同一IP地址是不可以的。通过bonding，虚拟一块网卡对外提供连接，物理网卡得被修改为相同的MAC地址。
+
+#### Bonding工作模式：
+
+共7种模式：0-6 Mode
+
+- Mode 0(balance-rr)：轮询策略，从头到尾顺序的在每一个slave接口上面发送数据包。本模式提供负载均衡和容错能力
+- Mode 1(active-backup)：主备策略，只有一个slave被激活，当且仅当活动的slave接口失败时才会激活其他slave。为了避免交换机发生混乱此时绑定的MAC地址只有一个外部端口上可见
+- Mode 3(broadcast)：广播策略，在所有slave接口上传送相同的报文，提供容错能力
+
+说明：
+
+> active-backup、balance-tlb、balance-alb模式不需要交换机的任何特殊配置。其他绑定模式需要配置交换机以便整合链接。如：Cisco交换机需要在模式0、2和3中使用EtherChannel，但在模式4中需要LACP和EtherChannel
 
 配置文件：
 
@@ -2965,6 +2977,13 @@ BOOTPROTO=none
 MASTER=bond0
 SLAVE=yes
 ONBOOT=yes
+```
+
+配置生效
+
+```bash
+# CentOS7、CentOS8
+nmcli connection
 ```
 
 查看bond状态
