@@ -194,8 +194,10 @@ db-[99:101]-node.example.com
 | Ad-Hoc           | 利用ansible命令，主要用于临时命令的使用场景                |
 | Ansible-playbook | 主要用于长期规划好的，大型项目的场景，需要有前期的规划过程 |
 | ansible-doc      | 显示模块帮助                                               |
-
-
+| ansible-galaxy   | 下载/上传优秀代码或Roles模块的官网平台                     |
+| ansible-pull     | 远程执行命令的工具                                         |
+| ansible-vault    | 文件加密工具                                               |
+| ansible-console  | 基于Console界面与用户交互的执行工具                        |
 
 ### ansible-doc
 
