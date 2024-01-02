@@ -1,24 +1,27 @@
-# pxe
+# pxe+kickstart实现批量装机
 
-关闭防火墙和SELINUX
+| PXE服务器环境       |
+| ------------------- |
+| 操作系统：CentOS8.2 |
+| dhcp-server         |
+| tftp-server         |
+| nginx               |
 
-## CentOS8实现PXE
-
-安装软件包
+## 安装软件包
 
 ```bash
-dnf -y install dhcp-server tftp-server httpd syslinux-nonlinux
-systemctl enable --now httpd tftp dhcpd
+dnf -y install dhcp-server tftp-server nginx syslinux-nonlinux
+systemctl enable --now nginx tftp
 ```
 
-配置DHCP服务
+## 配置DHCP服务
 
 编辑配置文件：`/etc/dhcp/dhcpd.conf`
 
 ```bash
 # 对应于/etc/resolv.conf中的search配置
 option domain-name "";
-# 对应与/etc/resolv.conf中的nameserver
+# 对应于/etc/resolv.conf中的nameserver配置
 option domain-name-servers 8.8.8.8;
 # 默认租期
 default-lease-time 86400;
@@ -141,12 +144,6 @@ pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
 
 %post
 %end
-```
-
-配置TFTP服务
-
-```bash
-systemctl start tftp.socket
 ```
 
 
