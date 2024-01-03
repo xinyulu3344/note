@@ -4,7 +4,7 @@
 
 ### 使用官方yum源
 
-```
+```ini
 [nginx-stable]
 name=nginx stable repo
 baseurl=http://nginx.org/packages/centos/$releasever/$basearch/
@@ -16,7 +16,7 @@ module_hotfixes=true
 
 
 
-```
+```bash
 [root@realserver11 ~]# nginx -V
 nginx version: nginx/1.16.1
 built by gcc 4.8.5 20150623 (Red Hat 4.8.5-39) (GCC) 
@@ -25,45 +25,44 @@ TLS SNI support enabled
 configure arguments: --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --modules-path=/usr/lib64/nginx/modules --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --pid-path=/run/nginx.pid --lock-path=/run/lock/subsys/nginx --user=nginx --group=nginx --with-file-aio --with-ipv6 --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-stream_ssl_preread_module --with-http_addition_module --with-http_xslt_module=dynamic --with-http_image_filter_module=dynamic --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_slice_module --with-http_stub_status_module --with-http_perl_module=dynamic --with-http_auth_request_module --with-mail=dynamic --with-mail_ssl_module --with-pcre --with-pcre-jit --with-stream=dynamic --with-stream_ssl_module --with-google_perftools_module --with-debug --with-cc-opt='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -m64 -mtune=generic' --with-ld-opt='-Wl,-z,relro -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -Wl,-E'
 ```
 
-
-
-
-
 ### 使用非官方yum源
 
 ## 编译安装
 
 1. 安装依赖
 
+   ```bash
+   yum install -y gcc gcc-c++ autoconf automake make pcre pcre-devel zlib-devel zlib openssl openssl-devel httpd-tools
    ```
-   yum install gcc pcre-devel zlib-devel
-   ```
-
-   
 
 2. 下载nginx文件
 
    ```bash
+   # 开源nginx
    wget http://nginx.org/download/nginx-1.16.1.tar.gz
+   
+   # 淘宝tengine
+   wget https://tengine.taobao.org/download/tengine-2.3.2.tar.gz
    ```
 
 3. 解压
 
    ```bash
-   tar -zxf nginx-1.16.1.tar.gz
+   tar -zxf tengine-2.3.2.tar.gz
    ```
 
 4.  编译
 
-   ```
-   ./configure --prefix=/usr/local/nginx
+   ```bash
+   ./configure --prefix=/opt/tengine232 --with-http_ssl_module --with-http_flv_module --with-http_gzip_static_module --with-http_stub_status_module --with-threads --with-file-aio
+   make && make install
    ```
 
 5. 编辑配置文件
 
 6. 启动nginx
 
-   ```
+   ```bash
    ./nginx -c xxx.conf
    ```
 
@@ -71,7 +70,7 @@ configure arguments: --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --mod
 
 ### 开机启动
 
-```
+```ini
 [Unit]
 Description=The nginx HTTP and reverse proxy server
 After=network.target remote-fs.target nss-lookup.target
