@@ -1,4 +1,4 @@
-## ceph.conf配置文件
+## ceph.conf配置管理
 
 /etc/ceph/ceph.conf 
 
@@ -38,3 +38,29 @@ osd mount options xfs = noatime,largeio,inode64,swalloc
 # 支持快照
 rbd_default_features = 1
 ```
+
+### 临时修改
+
+```bash
+ceph tell <type.id> config set <option> <value>
+```
+
+### 永久修改
+
+```bash
+ceph config set <type> <option> <value>
+```
+
+### 查看运行时配置
+
+```bash
+ceph config show <type.id> [<option>]
+ceph config show-with-defaults <type.id> [<option>]
+```
+
+### 查看永久配置
+
+```bash
+ceph config get <type> [<option>]
+```
+
