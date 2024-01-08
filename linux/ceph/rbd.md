@@ -153,12 +153,56 @@ SNAPID  NAME        SIZE   PROTECTED  TIMESTAMP
 
 限制快照数量
 
+```bash
+rbd snap limit set --limit <num>
+```
+
 移除限制
 
-还原快照
+```bash
+rbd snap limit clear <pool-name/image-name>
+```
+
+回滚快照
+
+```bash
+rbd snap rollback <pool-name/image-name@snap-name>
+```
 
 保护快照
 
+```bash
+rbd snap protect {pool-name}/{image-name}@{snapshot-name}
+```
+
 取消保护
 
+```bash
+rbd snap unprotect {pool-name}/{image-name}@{snapshot-name}
+```
+
 删除快照
+
+```bash
+rbd snap rm {pool-name}/{image-name}@{snap-name}
+
+# 删除指定image的所有快照
+rbd snap purge {pool-name}/{image-name}
+```
+
+重命名快照
+
+```bash
+rbd snap rename <pool-name>/<image-name>@<snap-name> <pool-name>/<image-name>@<snap-new-name>
+```
+
+创建clone
+
+如果需要克隆快照，需要指定父池、父镜像和父快照;还有子池和image名。在克隆快照之前，必须对快照进行保护。
+
+克隆卷和原卷不能同时挂载
+
+```bash
+rbd clone {pool-name}/{parent-image-name}@{snap-name} {pool-name}/{child-image-name}
+```
+
