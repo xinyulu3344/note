@@ -187,10 +187,13 @@ CLICKHOUSE_LOGDIR=${CLICKHOUSE_LOGDIR:=/clickhouse/log}
 </clickhouse>
 ```
 
-执行安装
+root执行安装
 
 ```bash
+/clickhouse/app/clickhouse-common-static/install/doinst.sh
+/clickhouse/app/clickhouse-common-static-dbg/install/doinst.sh
 /clickhouse/app/clickhouse-server/install/doinst.sh
+/clickhouse/app/clickhouse-client/install/doinst.sh
 ```
 
 软链接配置文件
@@ -199,12 +202,6 @@ CLICKHOUSE_LOGDIR=${CLICKHOUSE_LOGDIR:=/clickhouse/log}
 cd /etc
 mv /etc/clickhouse-* /clickhouse/etc/
 ln -sf /clickhouse/etc/* .
-```
-
-安装客户端
-
-```bash
-/clickhouse/app/clickhouse-client/install/doinst.sh
 ```
 
 检查参数
@@ -226,12 +223,19 @@ chmod -R 755 /clickhouse
 systemd启动
 
 ```bash
+systemctl status clickhouse-server.service
+systemctl start clickhouse-server.service
+
+# 停止服务
+systemctl stop clickhouse-server.service
 ```
 
 手工启动
 
 ```bash
 nohup clickhouse-server --config=/etc/clickhouse-server/config.xml &
+
+# 停止服务：kill
 ```
 
 客户端登录
