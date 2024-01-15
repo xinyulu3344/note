@@ -244,3 +244,60 @@ nohup clickhouse-server --config=/etc/clickhouse-server/config.xml &
 clickhouse-client -h 192.168.30.8 --port 9000 --user default --password
 ```
 
+### 多实例环境部署
+
+配置config.xml文件
+
+```bash
+cp /clickhouse/etc/clickhouse-server/config.xml /clickhouse/etc/clickhouse-server/config9200.xml
+```
+
+修改`config9200.xml`
+
+```xml
+<clickhouse>
+    <logger>
+        <log>/clickhouse/log9200/clickhouse-server.log</log>
+        <errorlog>/clickhouse/log9200/clickhouse-server.err.log</errorlog>
+    </logger>
+    <http_port>8223</http_port>
+    <tcp_port>9200</tcp_port>
+    <mysql_port>9204</mysql_port>
+    <postgresql_port>9205</postgresql_port>
+    <interserver_http_port>9209</interserver_http_port>
+    
+    <path>/clickhouse/data200</path>
+    <tmp_path>/clickhouse/data9200/tmp/</tmp_path>
+    <user_files_path>/clickhouse/data9200/user_files/</user_files_path>
+    <format_schema_path>/clickhouse/data9200/format_schemas/</format_schema_path>
+    <user_directories>
+        <local_directory>
+            <path>/clickhouse/data9200/access/</path>
+        </local_directory>
+    </user_directories>
+    <listen_host>::</listen_host>
+    <timezone>Asia/Shanghai</timezone>
+</clickhouse>
+```
+
+创建对应的目录
+
+```bash
+mkdir -p /clickhouse/data9200
+mkdir -p /clickhouse/log9200
+chown -R clickhouse:clickhouse /clickhouse/data9200
+chown -R clickhouse:clickhouse /clickhouse/log9200
+```
+
+启动
+
+```bash
+nohup clickhouse-server --config=/etc/clickhouse-server/config9200.xml &
+```
+
+客户端登录
+
+```bash
+clickhouse-client -h 192.168.30.8 --port 9200 --user default --password
+```
+
