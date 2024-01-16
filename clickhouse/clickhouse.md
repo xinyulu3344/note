@@ -90,6 +90,8 @@ vm.swappiness = 1
 vm.min_free_kbytes = 204800
 vm.overcommit_memory = 0
 EOF
+
+sysctl -p
 ```
 
 修改时区
@@ -301,3 +303,31 @@ nohup clickhouse-server --config=/etc/clickhouse-server/config9200.xml &
 clickhouse-client -h 192.168.30.8 --port 9200 --user default --password
 ```
 
+### 集群节点环境部署
+
+修改`config.xml`
+
+```bash
+vim /clickhouse/etc/clickhouse-server/config.xml
+```
+
+```xml
+<clickhouse>
+    <include_from>/clickhouse/etc/clickhouse-server/config.d/metrika.xml</include_from>
+</clickhouse>
+```
+
+创建并添加`metrika.xml`
+
+```bash
+vim /clickhouse/etc/clickhouse-server/config.d/metrika.xml
+```
+
+```xml
+<clickhouse>
+    <clickhouse_remote_servers>
+    </clickhouse_remote_servers>
+</clickhouse>
+```
+
+打包
