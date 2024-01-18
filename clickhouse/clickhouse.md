@@ -305,6 +305,8 @@ clickhouse-client -h 192.168.30.8 --port 9200 --user default --password
 
 ### 集群节点环境部署
 
+MergeTree + Distribute
+
 修改`config.xml`
 
 ```bash
@@ -326,8 +328,119 @@ vim /clickhouse/etc/clickhouse-server/config.d/metrika.xml
 ```xml
 <clickhouse>
     <clickhouse_remote_servers>
+        <!--集群名称-->
+        <ck_cluster1>
+            <!--定义分片节点-->
+            <shard>
+                <internal_replication>false</internal_replication>
+                <replica>
+                    <host>node1</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <internal_replication>false</internal_replication>
+                <replica>
+                    <host>node2</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <internal_replication>false</internal_replication>
+                <replica>
+                    <host>node3</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </ck_cluster1>
     </clickhouse_remote_servers>
+    <clickhouse_compression>
+        <case>
+            <min_part_size>10000000000</min_part_size>
+            <min_part_size_ratio>0.01</min_part_size_ratio>
+            <method>lz4</method>
+        </case>
+    </clickhouse_compression>
 </clickhouse>
 ```
 
+**clickhouse四种数据复制模式：**
+
+非复制表：
+
+- internal_replication = false：
+
+  写分布式表：会被插入到所有副本的本地表中，副本表上的数据保持同步。写入单机表，不同服务器查询结果不同
+
+- internal_replication = true
+
+  写分布式表：数据只插入到一个本地表中，数据无法保证准确性，这种是不正确的配置方式，非复制表，不建议使用
+
+复制表：
+
+- internal_replication = false
+
+  写分布式表/本地表：会被插入到副本的其中一个本地表中，会通过复制机制复制数据到另一个副本表上，数据保持同步。官方推荐
+
+- internal_replication = true
+
+  写分布式表：会被插入到副本的所有的本地表中㎡数据会重复2俱通过复制表的机制会删除重复数据，对性能造成大的影响。
+
 打包
+
+```bash
+tar -zcf clickhouse.tar.gz app data etc log
+```
+
+拷贝到所有主机
+
+删除数据目录
+
+```bash
+rm -rf /clickhouse/data/*
+rm -rf /clickhouse/data9200/*
+```
+
+执行安装
+
+```bash
+/clickhouse/app/clickhouse-common-static/install/doinst.sh
+/clickhouse/app/clickhouse-common-static-dbg/install/doinst.sh
+/clickhouse/app/clickhouse-server/install/doinst.sh
+/clickhouse/app/clickhouse-client/install/doinst.sh
+```
+
+修改权限
+
+```bash
+chown -R clickhouse:clickhouse /clickhouse
+chmod -R 755 /clickhouse
+```
+
+软链接配置文件
+
+```bash
+cd /etc
+rm -rf /etc/clickhouse-*
+ln -sf /clickhouse/etc/* .
+```
+
+启动服务
+
+```bash
+nohup /usr/bin/clickhouse-server --config=/etc/clickhouse-server/config.xml &
+```
+
+集群验证
+
+```bash
+clickhouse-client -h 192.168.30.8 --port 9000 --user default --query "select * from system.clusters;" 
+```
+
+```sql
+create table [if not exists] [db.]table_name [on cluster_name cluster]
+(
+    name1 [type1] [default|materialized|alias expr1]
+)
+```
+
