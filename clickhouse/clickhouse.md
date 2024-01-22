@@ -303,7 +303,7 @@ nohup clickhouse-server --config=/etc/clickhouse-server/config9200.xml &
 clickhouse-client -h 192.168.30.8 --port 9200 --user default --password
 ```
 
-### 集群节点环境部署
+### 分布式集群部署（分片）
 
 MergeTree + Distribute
 
@@ -315,6 +315,8 @@ vim /clickhouse/etc/clickhouse-server/config.xml
 
 ```xml
 <clickhouse>
+    <remote_servers incl="clickhouse_remote_servers">
+    </remote_servers>
     <include_from>/clickhouse/etc/clickhouse-server/config.d/metrika.xml</include_from>
 </clickhouse>
 ```
@@ -437,10 +439,14 @@ nohup /usr/bin/clickhouse-server --config=/etc/clickhouse-server/config.xml &
 clickhouse-client -h 192.168.30.8 --port 9000 --user default --query "select * from system.clusters;" 
 ```
 
-```sql
-create table [if not exists] [db.]table_name [on cluster_name cluster]
-(
-    name1 [type1] [default|materialized|alias expr1]
-)
+```bash
+┌─cluster─────────┬─shard_num─┬─shard_weight─┬─replica_num─┬─host_name──┬─host_address──┬─port─┬─is_local─┬─user────┬─default_database─┬─errors_count─┬─slowdowns_count─┬─estimated_recovery_time─┐
+│ ck_cluster1     │         1 │            1 │           1 │ node1      │ 192.168.30.8  │ 9000 │        1 │ default │                  │            0 │               0 │                       0 │
+│ ck_cluster1     │         2 │            1 │           1 │ node2      │ 192.168.30.9  │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │
+│ ck_cluster1     │         3 │            1 │           1 │ node3      │ 192.168.30.10 │ 9000 │        0 │ default │         
 ```
+
+### 分布式集群部署（分片+副本复制）
+
+MergeTree + Distribute
 
