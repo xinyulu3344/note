@@ -446,7 +446,133 @@ clickhouse-client -h 192.168.30.8 --port 9000 --user default --query "select * f
 │ ck_cluster1     │         3 │            1 │           1 │ node3      │ 192.168.30.10 │ 9000 │        0 │ default │         
 ```
 
+MergeTree建表语法
+
+```sql
+create table [if not exists] [db.]table_name [on cluster_name cluster]
+(
+    name1 [type1] [default|materialized|alias expr1],
+    name2 [type2] [default|materialized|alias expr2],
+    ...
+    index index_name1 expr1 type type1(...) granularity value1,
+    index index_name2 expr2 type type2(...) granularyity value2
+) engine = MergeTree()
+[partition by expr]
+[order by expr]
+[primary key expr]
+[sample by expr]
+[settings name=value,...]
+```
+
+MergeTree关键字
+
+| 关键字       | 解释                                                         |
+| ------------ | ------------------------------------------------------------ |
+| engine       | 引擎名称和参数                                               |
+| partition by | 分区字段                                                     |
+| order by     | 表的排序键                                                   |
+| primary key  | 主键                                                         |
+| sample by    | 采样表达式                                                   |
+| ttl          | 定义行数据的存储时间，设置值的生命周期。既可以为整张表设置，也可以为每个列单独设置。如果ttl同时作用于表和字段，Clickhouse会使用先到期的那个 |
+
 ### 分布式集群部署（分片+副本复制）
 
 MergeTree + Distribute
+
+安装JDK
+
+```bash
+su - clickhouse
+mkdir -p /clickhouse/soft
+mkdir -p /clickhouse/app
+cat >> ~/.bash_profile << EOF
+export JAVA_HOME=/clickhouse/jdk1.8.0_391
+export PATH=/clickhouse/jdk1.8.0_391/bin:$PATH
+export LANG=en_US.UTF8
+EOF
+source ~/.bash_profile
+
+cd /clickhouse
+tar -zxf /clickhouse/soft/jdk-8u391-linux-x64.tar.gz
+java -version
+```
+
+安装zookeeper
+
+```bash
+su - clickhouse
+cd /clickhouse/app
+tar -zxf /clickhouse/soft/apache-zookeeper-3.6.2-bin.tar.gz
+mv apache-zookeeper-3.6.2-bin zookeeper
+```
+
+配置zookeeper
+
+```bash
+mkdir -p /clickhouse/zookeeper/data
+mkdir -p /clickhouse/zookeeper/log
+cd /clickhouse/zookeeper/conf
+cp zoo_sample.cfg zoo.cfg
+
+vi /clickhouse/zookeeper/conf/zoo.cfg
+tickTime=2000
+initLimit=30000
+syncLimit=10
+maxClientCnxns=2000
+maxSessionTimeout=60000000
+autopurge.snapRetainCount=10
+autopurge.purgeInterval=1
+globalOutstandingLimit=200
+preAllocSize=131072
+snapCount=3000000
+leaderServes=yes
+dataDir=/clickhouse/zookeeper/data
+dataLogDir=/clickhouse/zookeeper/log
+clientPort=2181
+server.1=192.168.30.8:2888:3888
+server.2=192.168.30.9:2888:3888
+server.3=192.168.30.10:2888:3888
+
+# 修改JVM内存参数，默认1G(不要超过32G)
+vi /clickhouse/soft/apache-zookeeper-3.6.1-bin/bin/zkEnv.sh
+ZK_SERVER_HEAP="${ZK_SERVER_HEAP:-1000}"
+```
+
+将zoo.cfg和zkEnv.sh拷贝到其它节点
+
+创建myid文件
+
+```bash
+# 3个节点分别创建
+echo 1 > /clickhouse/zookeeper/data/myid
+echo 2 > /clickhouse/zookeeper/data/myid
+echo 3 > /clickhouse/zookeeper/data/myid
+```
+
+配置环境变量
+
+```bash
+cat >> ~/.bash_profile << EOF
+export PATH=$PATH:/clickhouse/zookeeper/bin
+EOF
+source ~/.bash_profile
+```
+
+启动zk
+
+```bash
+zkServer.sh start
+zkServer.sh stop
+zkServer.sh restart
+zkServer.sh status
+jps
+```
+
+测试连接zk
+
+```bash
+zkCli.sh -server 192.168.30.8:2181
+zkCli.sh -server 192.168.30.9:2181
+zkCli.sh -server 192.168.30.10:2181
+```
 
