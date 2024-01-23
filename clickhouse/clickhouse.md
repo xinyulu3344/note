@@ -11,7 +11,7 @@ cat >> /etc/hosts << EOF
 192.168.30.8 node1
 192.168.30.9 node2
 192.168.30.10 node3
-192.168.30.11 node3
+192.168.30.11 node4
 EOF
 ```
 
@@ -475,7 +475,7 @@ MergeTree关键字
 | sample by    | 采样表达式                                                   |
 | ttl          | 定义行数据的存储时间，设置值的生命周期。既可以为整张表设置，也可以为每个列单独设置。如果ttl同时作用于表和字段，Clickhouse会使用先到期的那个 |
 
-### 分布式集群部署（分片+副本复制）
+### 分布式集群部署（分片+副本复制+zk）
 
 MergeTree + Distribute
 
@@ -501,9 +501,9 @@ java -version
 
 ```bash
 su - clickhouse
-cd /clickhouse/app
+cd /clickhouse/
 tar -zxf /clickhouse/soft/apache-zookeeper-3.6.2-bin.tar.gz
-mv apache-zookeeper-3.6.2-bin zookeeper
+mv apache-zookeeper-3.6.2-bin/ zookeeper
 ```
 
 配置zookeeper
@@ -533,8 +533,8 @@ server.1=192.168.30.8:2888:3888
 server.2=192.168.30.9:2888:3888
 server.3=192.168.30.10:2888:3888
 
-# 修改JVM内存参数，默认1G(不要超过32G)
-vi /clickhouse/soft/apache-zookeeper-3.6.1-bin/bin/zkEnv.sh
+# 修改JVM内存参数，默认1G(生产改成内存的一半，不要超过32G)
+vi /clickhouse/zookeeper/bin/zkEnv.sh
 ZK_SERVER_HEAP="${ZK_SERVER_HEAP:-1000}"
 ```
 
@@ -575,4 +575,89 @@ zkCli.sh -server 192.168.30.8:2181
 zkCli.sh -server 192.168.30.9:2181
 zkCli.sh -server 192.168.30.10:2181
 ```
+
+配置`/clickhouse/etc/clickhouse-server/config.d/metrika.xml`
+
+```xml
+<clickhouse>
+    <clickhouse_remote_servers>
+        <!--集群名称-->
+        <ck_cluster01>
+            <!--定义分片节点-->
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>node1</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>node2</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>node3</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>node4</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </ck_cluster01>
+    </clickhouse_remote_servers>
+    <zookeeper>
+        <node index="1">
+            <host>node1</host>
+            <port>2181</port>
+        </node>
+        <node index="2">
+            <host>node2</host>
+            <port>2181</port>
+        </node>
+        <node index="3">
+            <host>node3</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+    <macros>
+        <layer>01</layer>
+        <shard>01</shard>
+        <replica>ck_cluster01-01-01</replica>
+    </macros>
+    <networks>
+        <ip>::/0</ip>
+    </networks>
+    <clickhouse_compression>
+        <case>
+            <min_part_size>10000000000</min_part_size>
+            <min_part_size_ratio>0.01</min_part_size_ratio>
+            <method>lz4</method>
+        </case>
+    </clickhouse_compression>
+</clickhouse>
+```
+
+将`/clickhouse/etc/clickhouse-server/config.d/metrika.xml`拷贝到其它节点
+
+每个节点修改macros配置
+
+启动服务
+
+```
+┌─cluster─┬─shard_num─┬─shard_weight─┬─replica_num─┬─host_name────────────────────┬─host_address──┬─port─┬─is_local─┬─user────┬─default_database─┬─errors_count─┬─slowdowns_count─┬─estimated_recovery_time─┬─database_shard_name─┬─database_replica_name─┬─is_active─┐
+│ default │         1 │            1 │           1 │ chi-terrabase-9hab0axfr8-0-0 │ 127.0.0.1     │ 9000 │        1 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           2 │ chi-terrabase-9hab0axfr8-0-1 │ 10.233.46.26  │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           3 │ chi-terrabase-9hab0axfr8-0-2 │ 10.233.42.246 │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           4 │ chi-terrabase-9hab0axfr8-0-3 │ 10.233.62.193 │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           5 │ chi-terrabase-9hab0axfr8-0-4 │ 10.233.15.136 │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           6 │ chi-terrabase-9hab0axfr8-0-5 │ 10.233.6.200  │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           7 │ chi-terrabase-9hab0axfr8-0-6 │ 10.233.39.168 │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+│ default │         1 │            1 │           8 │ chi-terrabase-9hab0axfr8-0-7 │ 10.233.62.216 │ 9000 │        0 │ default │                  │            0 │               0 │                       0 │                     │                       │      ᴺᵁᴸᴸ │
+└─────────┴───────────┴──────────────┴─────────────┴──────────────────────────────┴───────────────┴──────┴──────────┴─────────┴──────────────────┴──────────────┴─────────────────┴─────────────────────────┴─────────────────────┴───────────────────────┴───────────┘
+```
+
+## 
 
