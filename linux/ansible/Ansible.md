@@ -612,6 +612,43 @@ ansible all -m replace -a "path=/etc/fstab regexp='^#(.*)' replace='\1'"
 功能：主要用来收集主机的系统信息，这些facts信息可以直接以变量的形式使用，但是如果主机较多，会影响执行速度，可以使用`gather_facts: no`来禁止ansible收集facts信息
 
 ```bash
-ansible all -m setup -a "filter"
+ansible all -m setup -a "filter=ansible_distribution_major_version"
 ```
+
+示例：
+
+```bash
+ansible all -i inventory -m setup -a "filter=ansible_processor_count"
+ansible all -i inventory -m setup -a "filter=ansible_processor_cores"
+ansible all -i inventory -m setup -a "filter=ansible_processor_threads_per_core"
+ansible all -i inventory -m setup -a "filter=ansible_processor_vcpus"
+
+ansible all -i inventory -m setup -a "filter=ansible_memtotal_mb"
+ansible all -i inventory -m setup -a "filter=ansible_memfree_mb"
+ansible all -i inventory -m setup -a "filter=ansible_memory_mb"
+
+ansible all -i inventory -m setup -a "filter=ansible_swaptotal_mb"
+
+ansible all -i inventory -m setup -a "filter=ansible_kernel"
+ansible all -i inventory -m setup -a "filter=ansible_distribution"
+ansible all -i inventory -m setup -a "filter=ansible_distribution_major_version"
+ansible all -i inventory -m setup -a "filter=ansible_distribution_version"
+ansible all -i inventory -m setup -a "filter=ansible_machine"
+
+ansible all -i inventory -m setup -a "filter=ansible_eth0"
+
+ansible all -i inventory -m setup -a "filter=ansible_hostname"
+
+ansible all -i inventory -m setup -a "filter=ansible_lvm"
+ansible all -i inventory -m setup -a "filter=ansible_devices"
+ansible all -i inventory -m setup -a "filter=ansible_mounts"
+```
+
+
+
+```bash
+ansible node1 -m setup
+```
+
+
 
